@@ -25,39 +25,30 @@ const HOW_IT_WORKS = [
   {
     step: '01',
     title: 'Pick a topic',
-    body: 'Choose from algorithms, patterns, system design, OOD, or AI — organized so you always know what to study next.',
+    body: 'Algorithms, patterns, system design, OOD, or AI — whatever I\'m working through at the moment, organized as I go.',
   },
   {
     step: '02',
     title: 'Build intuition',
-    body: 'Play through interactive visualizations step by step. Code, diagrams, and explanations update together in real time.',
+    body: 'Interactive visualizations step by step, because I retain things better by watching them run than by reading about them.',
   },
   {
     step: '03',
-    title: 'Own the interview',
-    body: 'Every topic surfaces the angles interviewers actually ask — trade-offs, edge cases, and the "why" behind every decision.',
+    title: 'Write it down properly',
+    body: 'Trade-offs, edge cases, the "why" behind each decision — the parts I\'d otherwise forget I ever understood.',
   },
 ]
 
 export default function Home() {
   const SECTIONS = [
     {
-      title: 'Algorithms',
+      title: 'DSA',
       path: '/algorithms',
-      count: `${ALGORITHMS.length} visualizers`,
-      description: 'Watch every algorithm execute frame by frame — binary search, BFS, linked lists — with code highlighted at each step.',
+      count: `${ALGORITHMS.length} visualizers · ${PATTERNS.length} patterns`,
+      description: 'Watch every algorithm execute frame by frame, then work through the recurring patterns — arrays, hash maps, stacks — that come up again and again.',
       dot: 'bg-blue-400',
       text: 'text-blue-400',
       border: 'border-blue-500/20',
-    },
-    {
-      title: 'Patterns',
-      path: '/patterns',
-      count: `${PATTERNS.length} patterns`,
-      description: 'Master the recurring templates — arrays, hash maps, sliding window — that unlock every new problem you face.',
-      dot: 'bg-sky-400',
-      text: 'text-sky-400',
-      border: 'border-sky-500/20',
     },
     {
       title: 'System Design',
@@ -117,9 +108,9 @@ export default function Home() {
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.07 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight mb-5"
         >
-          The complete SWE{' '}
+          Everything I'm{' '}
           <span className="bg-gradient-to-r from-white via-blue-300 to-blue-500 bg-clip-text text-transparent">
-           playbook
+           learning
           </span>
         </motion.h1>
 
@@ -127,8 +118,8 @@ export default function Home() {
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.14 }}
           className="mx-auto max-w-lg text-lg text-slate-400 leading-relaxed mb-8"
         >
-          Every concept visualized. Every interview angle covered.
-          Build the depth that separates good engineers from great ones.
+          A running, visualized notebook of the software engineering concepts
+          I've worked through — kept here so I don't have to relearn them twice.
         </motion.p>
 
         <motion.div
@@ -153,9 +144,9 @@ export default function Home() {
           transition={{ duration: 0.4 }}
           className="mb-10 text-center"
         >
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">Everything you need, in one place</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">What I've covered so far</h2>
           <p className="mt-2 text-slate-400 text-sm max-w-md mx-auto">
-            Five sections covering the full SWE interview surface — from first-round LeetCode to system design and AI.
+            Four areas I'm building out as I learn — DSA, system design, OOD, and AI.
           </p>
         </motion.div>
 
@@ -193,9 +184,9 @@ export default function Home() {
           transition={{ duration: 0.4 }}
           className="mb-10 text-center"
         >
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">Study smarter, not longer</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">How I'm building this</h2>
           <p className="mt-2 text-slate-400 text-sm">
-            Built around how engineers actually retain and recall complex topics under pressure.
+            Less a reference doc, more a lab notebook — built to help the ideas actually stick.
           </p>
         </motion.div>
 

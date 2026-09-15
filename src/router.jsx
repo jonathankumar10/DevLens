@@ -9,9 +9,8 @@ import Layout from './components/layout/Layout'
 // only loads when its route is visited, instead of all bundling into
 // the initial chunk. Layout wraps <Outlet /> in the Suspense boundary.
 const Home              = lazy(() => import('./pages/Home'))
-const AlgorithmsIndex   = lazy(() => import('./pages/AlgorithmsIndex'))
+const DSAIndex          = lazy(() => import('./pages/DSAIndex'))
 const AlgorithmPage     = lazy(() => import('./pages/AlgorithmPage'))
-const PatternsIndex     = lazy(() => import('./pages/PatternsIndex'))
 const PatternPage       = lazy(() => import('./pages/PatternPage'))
 const SystemDesignIndex = lazy(() => import('./pages/SystemDesignIndex'))
 const SystemDesignPage  = lazy(() => import('./pages/SystemDesignPage'))
@@ -26,9 +25,9 @@ export const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true,                element: <Home /> },
-      { path: 'algorithms',         element: <AlgorithmsIndex /> },
+      { path: 'algorithms',         element: <DSAIndex /> },
       { path: 'algorithms/:id',     element: <AlgorithmPage /> },
-      { path: 'patterns',           element: <PatternsIndex /> },
+      { path: 'patterns',           element: <DSAIndex /> },
       { path: 'patterns/:id',       element: <PatternPage /> },
       { path: 'system-design',      element: <SystemDesignIndex /> },
       { path: 'system-design/:id',  element: <SystemDesignPage /> },

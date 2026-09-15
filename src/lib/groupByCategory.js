@@ -11,9 +11,11 @@ export function groupByCategory(items, categoryLabels, basePath) {
       order.push(item.category)
     }
     byCategory.get(item.category).push({
-      id:    item.id,
-      title: item.title,
-      path:  `${basePath}/${item.id}`,
+      id:           item.id,
+      title:        item.title,
+      path:         `${basePath}/${item.id}`,
+      problemUrl:   item.problemUrl,
+      problemLabel: item.problemLabel,
     })
   }
 

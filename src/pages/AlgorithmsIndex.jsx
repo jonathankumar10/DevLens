@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import AlgoCard from '../components/ui/AlgoCard'
 import ZoomControls from '../components/ui/ZoomControls'
+import LeetCodeBadge from '../components/ui/LeetCodeBadge'
 import { useZoomPan } from '../hooks/useZoomPan'
-import { ALGORITHMS, CATEGORY_LABELS } from '../constants/algorithmRegistry'
+import { ALGORITHMS, CATEGORY_LABELS, DIFFICULTY_COLOR } from '../constants/algorithmRegistry'
 
 // ── Labels ────────────────────────────────────────────────────────────────────
 
@@ -98,10 +100,30 @@ const EDGES = [
   ['sliding-window', 'intervals'],    // cross-edge — the "web"
 ]
 
-const NODE_W = 104
-const NODE_H = 30
+const NODE_W = 116
+const NODE_H = 36
+
+// Nodes with no incoming edge — entry points into the roadmap.
+const ROOT_IDS = new Set(
+  Object.keys(NODES).filter((id) => !EDGES.some(([, to]) => to === id))
+)
 
 // ── SVG sub-components ────────────────────────────────────────────────────────
+
+// Right-angle "org chart" connector with rounded corners, NeetCode-roadmap style.
+function elbowPath(x1, y1, x2, y2, r = 10) {
+  if (y1 === y2) return `M ${x1},${y1} L ${x2},${y2}`
+  const midX = (x1 + x2) / 2
+  const vDir = y2 > y1 ? 1 : -1
+  return [
+    `M ${x1},${y1}`,
+    `L ${midX - r},${y1}`,
+    `Q ${midX},${y1} ${midX},${y1 + r * vDir}`,
+    `L ${midX},${y2 - r * vDir}`,
+    `Q ${midX},${y2} ${midX + r},${y2}`,
+    `L ${x2},${y2}`,
+  ].join(' ')
+}
 
 function EdgePath({ from, to, isActive, hasHover }) {
   const src = NODES[from]
@@ -110,28 +132,20 @@ function EdgePath({ from, to, isActive, hasHover }) {
   const y1 = src.y
   const x2 = tgt.x - NODE_W / 2
   const y2 = tgt.y
-  const cx = (x1 + x2) / 2
-  const d = `M ${x1},${y1} C ${cx},${y1} ${cx},${y2} ${x2},${y2}`
-  const color = NODE_COLOR[from]
+  const d = elbowPath(x1, y1, x2, y2)
+  const color = isActive ? NODE_COLOR[from] : '#475569'
 
   return (
     <motion.path
       d={d}
       fill="none"
       stroke={color}
-      strokeDasharray={isActive ? '6 3' : '0'}
+      strokeLinecap="round"
       animate={{
-        strokeOpacity: isActive ? 0.88 : hasHover ? 0.07 : 0.18,
-        strokeWidth:   isActive ? 1.6  : 0.8,
-        strokeDashoffset: isActive ? [0, -18] : [0],
+        strokeOpacity: isActive ? 0.95 : hasHover ? 0.12 : 0.4,
+        strokeWidth:   isActive ? 2.2  : 1.4,
       }}
-      transition={{
-        strokeOpacity:    { duration: 0.18, ease: 'easeInOut' },
-        strokeWidth:      { duration: 0.18, ease: 'easeInOut' },
-        strokeDashoffset: isActive
-          ? { duration: 0.55, repeat: Infinity, ease: 'linear' }
-          : { duration: 0 },
-      }}
+      transition={{ duration: 0.18, ease: 'easeInOut' }}
     />
   )
 }
@@ -142,11 +156,7 @@ function NodeRect({ id, selected, hovered, hasProblems, count, onSelect, onHover
   const isSelected = selected === id
   const isHovered = hovered === id
   const isActive = isSelected || isHovered
-
-  const fillOpacity = !hasProblems ? 0.04 : isSelected ? 0.25 : isHovered ? 0.15 : 0.08
-  const strokeOpacity = !hasProblems ? 0.2 : isActive ? 1 : 0.45
-  const strokeWidth = isSelected ? 1.8 : 1
-  const textColor = !hasProblems ? '#475569' : isActive ? '#f8fafc' : '#94a3b8'
+  const isRoot = ROOT_IDS.has(id)
 
   return (
     <g
@@ -156,32 +166,53 @@ function NodeRect({ id, selected, hovered, hasProblems, count, onSelect, onHover
       onMouseLeave={() => onHover(null)}
       style={{ cursor: hasProblems ? 'pointer' : 'default' }}
     >
+      {isRoot && (
+        <g transform={`translate(${NODE_W / 2}, -13)`}>
+          <rect x="-22" y="-9" width="44" height="16" rx="8" fill={color} />
+          <text
+            x="0" y="0.5" dominantBaseline="middle" textAnchor="middle"
+            fill="white" fontSize="8" fontWeight="800" letterSpacing="0.4"
+          >
+            START
+          </text>
+        </g>
+      )}
       {isSelected && (
         <rect
-          x="-3" y="-3" width={NODE_W + 6} height={NODE_H + 6} rx="9"
-          fill={color} fillOpacity="0.15"
+          x="-3" y="-3" width={NODE_W + 6} height={NODE_H + 6} rx="11"
+          fill="none" stroke={color} strokeWidth="2" strokeOpacity="0.9"
         />
       )}
-      <rect
-        width={NODE_W} height={NODE_H} rx="7"
-        fill={color} fillOpacity={fillOpacity}
-        stroke={color} strokeWidth={strokeWidth} strokeOpacity={strokeOpacity}
-      />
+      {hasProblems ? (
+        // Flat, solid-fill box — matches NeetCode roadmap's "unlocked" node style
+        <rect
+          width={NODE_W} height={NODE_H} rx="8"
+          fill={color} fillOpacity={isActive ? 1 : 0.88}
+          style={{ filter: isActive ? `drop-shadow(0 0 8px ${color}99)` : 'none' }}
+        />
+      ) : (
+        // Dashed, grayed-out box — "on the roadmap" / not yet built
+        <rect
+          width={NODE_W} height={NODE_H} rx="8"
+          fill="#1e293b" fillOpacity="0.5"
+          stroke="#475569" strokeWidth="1.2" strokeDasharray="4 3"
+        />
+      )}
       <text
         x={NODE_W / 2} y={NODE_H / 2}
         dominantBaseline="middle" textAnchor="middle"
-        fill={textColor}
-        fontSize="9.5" fontFamily="system-ui, 'Segoe UI', sans-serif"
-        fontWeight={isActive ? '700' : '500'}
+        fill={hasProblems ? '#f8fafc' : '#64748b'}
+        fontSize="10.5" fontFamily="system-ui, 'Segoe UI', sans-serif"
+        fontWeight={hasProblems ? '700' : '500'}
       >
         {SHORT_LABELS[id]}
       </text>
       {hasProblems && count > 0 && (
-        <g transform={`translate(${NODE_W - 6}, -6)`}>
-          <circle r="8" fill={color} />
+        <g transform={`translate(${NODE_W}, 0)`}>
+          <circle r="8" fill="#0f172a" stroke={color} strokeWidth="1.5" />
           <text
             x="0" y="0" dominantBaseline="middle" textAnchor="middle"
-            fill="white" fontSize="7" fontWeight="700"
+            fill="white" fontSize="7.5" fontWeight="700"
           >
             {count}
           </text>
@@ -204,7 +235,7 @@ function DependencyGraph({ selected, onSelect, problemCounts }) {
   }, [selected, hovered])
 
   return (
-    <div className="relative w-full overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02]">
+    <div className="relative w-full overflow-x-auto rounded-2xl border border-white/10 bg-[#0b1220]">
       <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={reset} isZoomed={zoom !== 1} />
       <svg
         ref={svgRef}
@@ -260,55 +291,142 @@ function DependencyGraph({ selected, onSelect, problemCounts }) {
           { color: '#f97316', label: 'Intervals' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+            <div className="w-2.5 h-2.5 rounded-[3px]" style={{ background: color }} />
             <span className="text-[10px] text-slate-500">{label}</span>
           </div>
         ))}
         <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-5 h-px border-t border-dashed border-blue-500/50" />
-          <span className="text-[10px] text-slate-600">animated = active edge</span>
+          <div className="w-3 h-3 rounded-[3px] border border-dashed border-slate-600 bg-slate-800/50" />
+          <span className="text-[10px] text-slate-600">not yet built</span>
         </div>
       </div>
     </div>
   )
 }
 
-// ── Problems panel ────────────────────────────────────────────────────────────
+// ── Problems drawer ───────────────────────────────────────────────────────────
 
-const gridVariants = {
+const rowVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
+  show: { transition: { staggerChildren: 0.03 } },
 }
-const cardVariant = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 24 } },
+const rowVariant = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 320, damping: 28 } },
 }
 
-function ProblemsPanel({ algorithms, label }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.25, type: 'spring', stiffness: 260, damping: 24 }}
-      className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] px-5 py-5 sm:px-6 sm:py-6"
-    >
-      <div className="flex items-center gap-3 mb-5">
-        <h2 className="text-sm font-bold text-white">{label}</h2>
-        <div className="flex-1 h-px bg-blue-500/15" />
-        <span className="text-[10px] rounded-full px-2 py-0.5 font-medium bg-blue-500/15 text-blue-300">
-          {algorithms.length} problem{algorithms.length !== 1 ? 's' : ''}
-        </span>
-      </div>
-      <motion.div variants={gridVariants} initial="hidden" animate="show"
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {algorithms.map((algo) => (
-          <motion.div key={algo.id} variants={cardVariant}>
-            <AlgoCard algo={algo} number={algo.problemLabel?.match(/#(\d+)/)?.[1]} />
-          </motion.div>
-        ))}
+const VisualizerIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+)
+
+const ArrowLeftIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+  </svg>
+)
+
+function ProblemsDrawer({ algorithms, label, isEmpty, onClose, onClearSearch }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  return createPortal(
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-x-0 bottom-0 z-[40] bg-black/50"
+        style={{ top: 'var(--navbar-h, 4rem)' }}
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+        className="fixed right-0 bottom-0 z-[41] flex w-full sm:w-[600px] lg:w-[720px] flex-col border-l border-t border-white/10 bg-[#0b0f19] shadow-2xl"
+        style={{ top: 'var(--navbar-h, 4rem)' }}
+      >
+        <div className="shrink-0 border-b border-white/10 px-6 py-5">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-white"
+          >
+            <ArrowLeftIcon />
+            Back to graph
+          </button>
+          <div className="mt-4 text-center">
+            <h2 className="text-xl font-bold text-white">{label}</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {algorithms.length} problem{algorithms.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {isEmpty ? (
+            <div className="space-y-3 py-16 text-center">
+              <p className="font-medium text-slate-400">No matching problems</p>
+              <p className="text-sm text-slate-600">
+                Try a different search or{' '}
+                <button onClick={onClearSearch}
+                  className="text-blue-400 underline underline-offset-2 transition-colors hover:text-blue-300">
+                  clear
+                </button>
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-slate-500">
+                  <th className="py-2 pr-2 text-left font-medium">Problem</th>
+                  <th className="py-2 pr-2 text-left font-medium">Difficulty</th>
+                  <th className="w-10 py-2 text-right font-medium">Visualizer</th>
+                </tr>
+              </thead>
+              <motion.tbody variants={rowVariants} initial="hidden" animate="show">
+                {algorithms.map((algo) => (
+                  <motion.tr
+                    key={algo.id}
+                    variants={rowVariant}
+                    className="border-b border-white/5 transition-colors hover:bg-white/[0.03]"
+                  >
+                    <td className="py-3 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-200">{algo.title}</span>
+                        <LeetCodeBadge url={algo.problemUrl} label={algo.problemLabel} />
+                      </div>
+                    </td>
+                    <td className="py-3 pr-2">
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DIFFICULTY_COLOR[algo.difficulty]}`}>
+                        {algo.difficulty}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right">
+                      <Link
+                        to={algo.path}
+                        title="View interactive visualizer"
+                        className="inline-flex text-slate-500 transition-colors hover:text-blue-400"
+                      >
+                        <VisualizerIcon />
+                      </Link>
+                    </td>
+                  </motion.tr>
+                ))}
+              </motion.tbody>
+            </table>
+          )}
+        </div>
       </motion.div>
-    </motion.div>
+    </>,
+    document.body
   )
 }
 
@@ -347,9 +465,16 @@ export default function AlgorithmsIndex() {
     if (val.trim()) setSelectedCategory(null)
   }
 
+  const handleCloseDrawer = () => {
+    setSelectedCategory(null)
+    setQuery('')
+  }
+
   const panelLabel = query.trim()
     ? `Results for "${query.trim()}"`
     : CATEGORY_LABELS[selectedCategory] ?? ''
+
+  const drawerOpen = Boolean(selectedCategory) || query.trim().length > 0
 
   return (
     <div className="space-y-8">
@@ -400,28 +525,18 @@ export default function AlgorithmsIndex() {
         />
       </motion.div>
 
-      {/* Problems panel */}
-      <AnimatePresence mode="wait">
-        {shownAlgorithms.length > 0 ? (
-          <ProblemsPanel
-            key={query || selectedCategory}
+      {/* Problems drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <ProblemsDrawer
+            key="drawer"
             algorithms={shownAlgorithms}
             label={panelLabel}
+            isEmpty={shownAlgorithms.length === 0}
+            onClose={handleCloseDrawer}
+            onClearSearch={() => handleSearch('')}
           />
-        ) : query.trim() ? (
-          <motion.div key="empty"
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="rounded-2xl border border-white/8 bg-white/[0.02] py-16 text-center space-y-3">
-            <p className="text-slate-400 font-medium">No matching problems</p>
-            <p className="text-sm text-slate-600">
-              Try a different search or{' '}
-              <button onClick={() => handleSearch('')}
-                className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">
-                clear
-              </button>
-            </p>
-          </motion.div>
-        ) : null}
+        )}
       </AnimatePresence>
 
     </div>

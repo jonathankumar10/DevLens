@@ -37,6 +37,8 @@ firebase functions:secrets:set ANTHROPIC_API_KEY
 | `/ood/:id` | GoF design patterns and OOD interview questions |
 | `/ai/:id` | AI concepts: history, ML, LLMs, workflows, agents, production, live-coding interviews |
 
+`/algorithms` and `/patterns` share one index component, `src/pages/DSAIndex.jsx`, which renders `AlgorithmsIndex`/`PatternsIndex` as tab panels based on the current path. The navbar exposes this as a single "DSA" entry.
+
 ## Registries (`src/constants/`)
 
 | File | Exports | Content type |

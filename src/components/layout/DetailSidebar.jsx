@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import LeetCodeBadge from '../ui/LeetCodeBadge'
 
 function GroupList({ groups, activeId, onNavigate }) {
   const [overrides, setOverrides] = useState({})
@@ -41,21 +42,26 @@ function GroupList({ groups, activeId, onNavigate }) {
                 {group.items.map((item) => {
                   const active = item.id === activeId
                   return (
-                    <Link
+                    <div
                       key={item.id}
-                      to={item.path}
-                      onClick={onNavigate}
-                      className={`group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                      className={`group flex items-center gap-1 rounded-md transition-colors ${
                         active
                           ? 'bg-blue-500/15 text-blue-300 font-medium'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                       }`}
                     >
-                      <span className={`shrink-0 w-1.5 h-1.5 rounded-full transition-colors ${
-                        active ? 'bg-blue-400' : 'bg-slate-700 group-hover:bg-slate-500'
-                      }`} />
-                      <span className="truncate">{item.title}</span>
-                    </Link>
+                      <Link
+                        to={item.path}
+                        onClick={onNavigate}
+                        className="flex-1 min-w-0 flex items-center gap-2.5 px-2.5 py-1.5 text-sm"
+                      >
+                        <span className={`shrink-0 w-1.5 h-1.5 rounded-full transition-colors ${
+                          active ? 'bg-blue-400' : 'bg-slate-700 group-hover:bg-slate-500'
+                        }`} />
+                        <span className="truncate">{item.title}</span>
+                      </Link>
+                      <LeetCodeBadge url={item.problemUrl} label={item.problemLabel} className="mr-1.5" />
+                    </div>
                   )
                 })}
               </div>
@@ -96,7 +102,13 @@ export default function DetailSidebar({ groups, activeId, title = 'On this page'
       )}
 
       {/* Desktop sidebar */}
-      <nav className="hidden lg:block w-64 shrink-0 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 scrollbar-thin">
+      <nav
+        className="hidden lg:block w-64 shrink-0 sticky overflow-y-auto pr-2 scrollbar-thin"
+        style={{
+          top: 'calc(var(--navbar-h, 4rem) + 1rem)',
+          maxHeight: 'calc(100vh - var(--navbar-h, 4rem) - 2rem)',
+        }}
+      >
         <GroupList groups={groups} activeId={activeId} />
       </nav>
     </>

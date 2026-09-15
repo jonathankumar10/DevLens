@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useLayoutEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const NAV_LINKS = [
-  { label: 'Algorithms',    to: '/algorithms' },
-  { label: 'Patterns',      to: '/patterns' },
+  { label: 'DSA',           to: '/algorithms', match: ['/algorithms', '/patterns'] },
   { label: 'System Design', to: '/system-design' },
   { label: 'OOD',           to: '/ood' },
   { label: 'AI',            to: '/ai' },
@@ -13,11 +12,29 @@ const NAV_LINKS = [
 export default function Navbar() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
+  const headerRef = useRef(null)
 
-  const isActive = (to) => pathname === to || (to !== '/' && pathname.startsWith(to))
+  const isActive = (link) =>
+    (link.match ?? [link.to]).some(
+      (p) => pathname === p || (p !== '/' && pathname.startsWith(p))
+    )
+
+  // Publish the navbar's real rendered height as a CSS variable so sticky
+  // sidebars/panels elsewhere can offset below it exactly, instead of
+  // guessing a fixed px/rem value that drifts whenever the navbar's content
+  // (or the mobile menu) changes height.
+  useLayoutEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const setVar = () => document.documentElement.style.setProperty('--navbar-h', `${el.offsetHeight}px`)
+    setVar()
+    const observer = new ResizeObserver(setVar)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [open])
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#09090b]/80 backdrop-blur-md">
+    <header ref={headerRef} className="sticky top-0 z-50 border-b border-white/10 bg-[#09090b]/80 backdrop-blur-md">
       <nav className="max-w-[1400px] mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <Link to="/" onClick={() => setOpen(false)} className="flex items-center gap-2">
           <span className="text-lg sm:text-xl font-bold tracking-tight text-white">
@@ -27,8 +44,9 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <ul className="hidden sm:flex items-center gap-0.5 sm:gap-1">
-          {NAV_LINKS.map(({ label, to }) => {
-            const active = isActive(to)
+          {NAV_LINKS.map((link) => {
+            const { label, to } = link
+            const active = isActive(link)
             return (
               <li key={to}>
                 <Link
@@ -85,8 +103,9 @@ export default function Navbar() {
             className="sm:hidden overflow-hidden border-t border-white/10"
           >
             <ul className="px-4 py-3 space-y-1">
-              {NAV_LINKS.map(({ label, to }) => {
-                const active = isActive(to)
+              {NAV_LINKS.map((link) => {
+                const { label, to } = link
+                const active = isActive(link)
                 return (
                   <li key={to}>
                     <Link
