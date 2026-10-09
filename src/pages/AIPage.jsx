@@ -2,7 +2,9 @@ import React, { Suspense } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AI_ITEMS, AI_COLORS, AI_CATEGORY_LABELS, LIVE_CODING_AI_GUIDE } from '../constants/aiRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
 import DetailSidebar from '../components/layout/DetailSidebar'
+import Breadcrumb from '../components/layout/Breadcrumb'
 import { groupByCategory } from '../lib/groupByCategory'
 
 const SIDEBAR_GROUPS = groupByCategory(AI_ITEMS, AI_CATEGORY_LABELS, '/ai')
@@ -71,14 +73,11 @@ export default function AIPage() {
         transition={{ duration: 0.35 }}
         className="flex-1 min-w-0 space-y-8"
       >
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link to="/" className="hover:text-slate-300 transition-colors">Home</Link>
-        <span>/</span>
-        <Link to="/ai" className="hover:text-slate-300 transition-colors">AI</Link>
-        <span>/</span>
-        <span className="text-slate-300">{item.title}</span>
-      </nav>
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        NAV_SECTIONS.ai,
+        { label: item.title },
+      ]} />
 
       {/* Hero */}
       <div className="space-y-2">

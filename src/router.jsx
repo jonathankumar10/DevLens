@@ -18,6 +18,8 @@ const OODIndex           = lazy(() => import('./pages/OODIndex'))
 const OODPage            = lazy(() => import('./pages/OODPage'))
 const AIIndex            = lazy(() => import('./pages/AIIndex'))
 const AIPage             = lazy(() => import('./pages/AIPage'))
+const TechStackIndex     = lazy(() => import('./pages/TechStackIndex'))
+const TechStackPage      = lazy(() => import('./pages/TechStackPage'))
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +37,8 @@ export const router = createBrowserRouter([
       { path: 'ood/:id',            element: <OODPage /> },
       { path: 'ai',                 element: <AIIndex /> },
       { path: 'ai/:id',             element: <AIPage /> },
+      { path: 'tech-stack',         element: <TechStackIndex /> },
+      { path: 'tech-stack/:id',     element: <TechStackPage /> },
     ],
   },
 ])

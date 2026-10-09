@@ -1,12 +1,14 @@
 import React, { Suspense, useState, useCallback } from 'react'
-import { useParams, Link, Navigate } from 'react-router-dom'
+import { useParams, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ALGORITHMS, DIFFICULTY_COLOR, CATEGORY_LABELS } from '../constants/algorithmRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
 import CodePanel from '../components/ui/CodePanel'
 import DetailSidebar from '../components/layout/DetailSidebar'
-import { groupByCategory } from '../lib/groupByCategory'
+import Breadcrumb from '../components/layout/Breadcrumb'
+import { groupByCategoryAndDifficulty } from '../lib/groupByCategory'
 
-const SIDEBAR_GROUPS = groupByCategory(ALGORITHMS, CATEGORY_LABELS, '/algorithms')
+const SIDEBAR_GROUPS = groupByCategoryAndDifficulty(ALGORITHMS, CATEGORY_LABELS, '/algorithms')
 
 // Vite resolves this glob at build time — no manual imports ever needed.
 // To add a new visualizer: drop Visualizer.jsx in its algorithm folder. Done.
@@ -43,14 +45,12 @@ export default function AlgorithmPage() {
         transition={{ duration: 0.35 }}
         className="flex-1 min-w-0 space-y-6"
       >
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link to="/" className="hover:text-slate-300 transition-colors">Home</Link>
-        <span>/</span>
-        <Link to="/algorithms" className="hover:text-slate-300 transition-colors">Algorithms</Link>
-        <span>/</span>
-        <span className="text-slate-300">{algo.title}</span>
-      </nav>
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        NAV_SECTIONS.dsa,
+        { label: 'Algorithms', to: '/algorithms' },
+        { label: algo.title },
+      ]} />
 
       {/* Title + badges */}
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -105,7 +105,7 @@ export default function AlgorithmPage() {
       </div>
 
       {/* Split layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         {/* Left — Visualizer */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-5">
           <Suspense fallback={

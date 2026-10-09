@@ -24,7 +24,7 @@ const PATTERN_DATA = [
       { op: 'Insert / Delete (middle)', time: 'O(n)' },
       { op: 'Insert / Delete (end)', time: 'O(1) amortized' },
     ],
-    algorithmIds: ['contains-duplicate', 'max-consecutive-ones', 'remove-element', 'replace-elements', 'concatenation-of-array'],
+    algorithmIds: ['contains-duplicate', 'max-consecutive-ones', 'remove-element', 'replace-elements', 'concatenation-of-array', 'maximum-subarray'],
   },
   {
     id: 'hash-map',
@@ -48,7 +48,30 @@ const PATTERN_DATA = [
       { op: 'Worst case (all collide)', time: 'O(n)' },
       { op: 'Space', time: 'O(n)' },
     ],
-    algorithmIds: ['two-sum'],
+    algorithmIds: ['two-sum', 'valid-anagram'],
+  },
+  {
+    id: 'two-pointers',
+    title: 'Two Pointers',
+    tagline: 'Two indices closing in from opposite ends — O(n), O(1) space',
+    color: 'cyan',
+    description: `Two pointers walk toward each other (or in the same direction at different speeds) across an indexable structure, eliminating the need for nested loops. Because each pointer only ever moves forward, the whole pass is O(n) — and since no extra structure is needed to track state, it runs in O(1) space.`,
+    howItWorks: [
+      'Start one pointer at the beginning (left) and one at the end (right) of the structure.',
+      'Each step, decide which pointer(s) to move based on a comparison — no backtracking, no revisiting.',
+      'The pointers meet or cross when the whole range has been covered exactly once.',
+      'A variant (fast/slow) moves both pointers from the same end at different speeds — used for cycle detection and finding midpoints.',
+    ],
+    whenToUse: [
+      'The input is a string or sorted array and you\'re comparing pairs from both ends.',
+      'Brute force is O(n²) with nested loops that could instead be replaced by two indices moving inward.',
+      'You need to check a property "from the outside in" — palindromes, container/area problems, sorted-pair sums.',
+    ],
+    complexity: [
+      { op: 'Pass over n elements', time: 'O(n)' },
+      { op: 'Space', time: 'O(1)' },
+    ],
+    algorithmIds: ['valid-palindrome', 'two-sum-ii', 'container-with-most-water', 'remove-duplicates', 'move-zeroes'],
   },
   {
     id: 'stack',
@@ -98,7 +121,7 @@ const PATTERN_DATA = [
       { op: 'Space (iterative)', time: 'O(1)' },
       { op: 'Space (recursive)', time: 'O(log n)' },
     ],
-    algorithmIds: ['binary-search', 'search-matrix'],
+    algorithmIds: ['binary-search', 'search-matrix', 'first-bad-version', 'next-greatest-letter', 'find-min-rotated', 'search-rotated', 'koko-eating-bananas'],
   },
   {
     id: 'linked-list',
@@ -122,7 +145,7 @@ const PATTERN_DATA = [
       { op: 'Insert / Delete (at known node)', time: 'O(1)' },
       { op: 'Insert / Delete (by value)', time: 'O(n)' },
     ],
-    algorithmIds: ['reverse-linked-list', 'merge-sorted-lists'],
+    algorithmIds: ['reverse-linked-list', 'merge-sorted-lists', 'linked-list-cycle', 'remove-nth-node', 'reorder-list', 'design-linked-list'],
   },
   {
     id: 'trees',
@@ -146,7 +169,7 @@ const PATTERN_DATA = [
       { op: 'Access / Search (skewed)', time: 'O(n)' },
       { op: 'DFS / BFS traversal', time: 'O(n)' },
     ],
-    algorithmIds: ['tree-traversal'],
+    algorithmIds: ['tree-traversal', 'max-depth', 'invert-tree'],
   },
   {
     id: 'graphs-bfs',
@@ -169,7 +192,7 @@ const PATTERN_DATA = [
       { op: 'Time (V = nodes, E = edges)', time: 'O(V + E)' },
       { op: 'Space (visited + queue)', time: 'O(V)' },
     ],
-    algorithmIds: ['bfs'],
+    algorithmIds: ['bfs', 'clone-graph'],
   },
 ]
 
@@ -187,6 +210,7 @@ export const PATTERN_COLORS = {
   teal:    { text: 'text-teal-300',    bg: 'bg-teal-500/10',    border: 'border-teal-500/25',    badgeBg: 'bg-teal-500/15',    badgeBorder: 'border-teal-500/30',    dot: 'bg-teal-400',    glow: '#14b8a6' },
   blue:    { text: 'text-blue-300',    bg: 'bg-blue-500/10',    border: 'border-blue-500/25',    badgeBg: 'bg-blue-500/15',    badgeBorder: 'border-blue-500/30',    dot: 'bg-blue-400',    glow: '#3b82f6' },
   orange:  { text: 'text-orange-300',  bg: 'bg-orange-500/10',  border: 'border-orange-500/25',  badgeBg: 'bg-orange-500/15',  badgeBorder: 'border-orange-500/30',  dot: 'bg-orange-400',  glow: '#f97316' },
+  cyan:    { text: 'text-cyan-300',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/25',    badgeBg: 'bg-cyan-500/15',    badgeBorder: 'border-cyan-500/30',    dot: 'bg-cyan-400',    glow: '#06b6d4' },
 }
 
 export function getAlgoPatternGlows(algoId) {

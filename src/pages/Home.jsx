@@ -5,6 +5,7 @@ import { PATTERNS } from '../constants/patternsRegistry'
 import { OOD_PATTERNS, OOD_QUESTIONS } from '../constants/oodRegistry'
 import { AI_ITEMS } from '../constants/aiRegistry'
 import { SYSTEM_DESIGN } from '../constants/systemDesignRegistry'
+import { TECH_STACK_ITEMS } from '../constants/techStackRegistry'
 
 const stagger = {
   hidden: {},
@@ -77,6 +78,15 @@ export default function Home() {
       text: 'text-amber-400',
       border: 'border-amber-500/20',
     },
+    {
+      title: 'Tech Stack',
+      path: '/tech-stack',
+      count: `${TECH_STACK_ITEMS.length} tools`,
+      description: 'A running log of what I actually use — how each tool works, and the inferences I picked up from using it.',
+      dot: 'bg-emerald-400',
+      text: 'text-emerald-400',
+      border: 'border-emerald-500/20',
+    },
   ]
 
   return (
@@ -101,7 +111,7 @@ export default function Home() {
           className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-sm text-blue-300 mb-6"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-          DSA · System Design · OOD · AI
+          DSA · System Design · OOD · AI · Tech Stack
         </motion.div>
 
         <motion.h1
@@ -146,7 +156,7 @@ export default function Home() {
         >
           <h2 className="text-2xl sm:text-3xl font-bold text-white">What I've covered so far</h2>
           <p className="mt-2 text-slate-400 text-sm max-w-md mx-auto">
-            Four areas I'm building out as I learn — DSA, system design, OOD, and AI.
+            Five areas I'm building out as I learn — DSA, system design, OOD, AI, and the tech stack itself.
           </p>
         </motion.div>
 

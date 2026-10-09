@@ -400,7 +400,13 @@ function ProblemsDrawer({ algorithms, label, isEmpty, onClose, onClearSearch }) 
                   >
                     <td className="py-3 pr-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-200">{algo.title}</span>
+                        <Link
+                          to={algo.path}
+                          title="View interactive visualizer"
+                          className="text-slate-200 transition-colors hover:text-white hover:underline underline-offset-2"
+                        >
+                          {algo.title}
+                        </Link>
                         <LeetCodeBadge url={algo.problemUrl} label={algo.problemLabel} />
                       </div>
                     </td>

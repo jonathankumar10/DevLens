@@ -3,6 +3,8 @@ import { useParams, Link, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PATTERNS, PATTERN_COLORS } from '../constants/patternsRegistry'
 import { DIFFICULTY_COLOR } from '../constants/algorithmRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
+import Breadcrumb from '../components/layout/Breadcrumb'
 
 const ANIMATIONS = import.meta.glob('../content/patterns/*/Animation.jsx')
 
@@ -28,14 +30,12 @@ export default function PatternPage() {
       transition={{ duration: 0.35 }}
       className="space-y-8"
     >
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link to="/" className="hover:text-slate-300 transition-colors">Home</Link>
-        <span>/</span>
-        <Link to="/patterns" className="hover:text-slate-300 transition-colors">Patterns</Link>
-        <span>/</span>
-        <span className="text-slate-300">{pattern.title}</span>
-      </nav>
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        NAV_SECTIONS.dsa,
+        { label: 'Patterns', to: '/patterns' },
+        { label: pattern.title },
+      ]} />
 
       {/* Hero */}
       <div className="space-y-2">

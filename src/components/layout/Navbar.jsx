@@ -1,12 +1,14 @@
 import { useState, useRef, useLayoutEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { NAV_SECTIONS } from '../../constants/sections'
 
 const NAV_LINKS = [
-  { label: 'DSA',           to: '/algorithms', match: ['/algorithms', '/patterns'] },
-  { label: 'System Design', to: '/system-design' },
-  { label: 'OOD',           to: '/ood' },
-  { label: 'AI',            to: '/ai' },
+  { ...NAV_SECTIONS.dsa,          match: ['/algorithms', '/patterns'] },
+  { ...NAV_SECTIONS.systemDesign },
+  { ...NAV_SECTIONS.ood },
+  { ...NAV_SECTIONS.ai },
+  { ...NAV_SECTIONS.techStack },
 ]
 
 export default function Navbar() {

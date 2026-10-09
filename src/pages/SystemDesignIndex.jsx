@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { SYSTEM_DESIGN } from '../constants/systemDesignRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
+import Breadcrumb from '../components/layout/Breadcrumb'
 
 // ── Section definitions ────────────────────────────────────────────────────────
 // Concepts are grouped into three top-level sections (mirroring how a system
@@ -253,6 +255,11 @@ export default function SystemDesignIndex() {
 
   return (
     <div className="space-y-8">
+
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        { label: NAV_SECTIONS.systemDesign.label },
+      ]} />
 
       {/* Header */}
       <div>

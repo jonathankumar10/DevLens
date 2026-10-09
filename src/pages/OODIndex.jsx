@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { OOD_PATTERNS, OOD_QUESTIONS } from '../constants/oodRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
+import Breadcrumb from '../components/layout/Breadcrumb'
 
 // ── SVG animations (one per pattern) ─────────────────────────────────────────
 
@@ -444,6 +446,11 @@ export default function OODIndex() {
 
   return (
     <div className="space-y-1">
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        { label: NAV_SECTIONS.ood.label },
+      ]} />
+
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Object Oriented Design</h1>
         <p className="mt-2 text-slate-400 max-w-2xl">

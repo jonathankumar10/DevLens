@@ -2,7 +2,9 @@ import React, { Suspense } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { OOD_ITEMS, OOD_COLORS, OOD_CATEGORY_LABELS } from '../constants/oodRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
 import DetailSidebar from '../components/layout/DetailSidebar'
+import Breadcrumb from '../components/layout/Breadcrumb'
 import { groupByCategory } from '../lib/groupByCategory'
 
 const SIDEBAR_GROUPS = groupByCategory(OOD_ITEMS, OOD_CATEGORY_LABELS, '/ood')
@@ -78,14 +80,11 @@ export default function OODPage() {
         transition={{ duration: 0.35 }}
         className="flex-1 min-w-0 space-y-8"
       >
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link to="/" className="hover:text-slate-300 transition-colors">Home</Link>
-        <span>/</span>
-        <Link to="/ood" className="hover:text-slate-300 transition-colors">OOD</Link>
-        <span>/</span>
-        <span className="text-slate-300">{item.title}</span>
-      </nav>
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        NAV_SECTIONS.ood,
+        { label: item.title },
+      ]} />
 
       {/* Hero */}
       <div className="space-y-2">

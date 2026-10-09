@@ -2,8 +2,10 @@ import React, { Suspense, useState, useEffect } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SYSTEM_DESIGN, TYPE_COLOR, TYPE_LABEL, SD_CATEGORY_LABELS } from '../constants/systemDesignRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
 import MockInterview from '../components/system-design/MockInterview'
 import DetailSidebar from '../components/layout/DetailSidebar'
+import Breadcrumb from '../components/layout/Breadcrumb'
 import { groupByCategory } from '../lib/groupByCategory'
 
 const SIDEBAR_GROUPS = groupByCategory(SYSTEM_DESIGN, SD_CATEGORY_LABELS, '/system-design')
@@ -1472,14 +1474,12 @@ export default function SystemDesignPage() {
         transition={{ duration: 0.35 }}
         className="flex-1 min-w-0 space-y-8"
       >
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link to="/" className="hover:text-slate-300 transition-colors">Home</Link>
-        <span>/</span>
-        <Link to="/system-design" className="hover:text-slate-300 transition-colors">System Design</Link>
-        <span>/</span>
-        <span className="text-slate-300">{item.title}</span>
-      </nav>
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        NAV_SECTIONS.systemDesign,
+        { label: TYPE_LABEL[item.type], to: '/system-design' },
+        { label: item.title },
+      ]} />
 
       {/* Title + type badge */}
       <div className="flex flex-wrap items-start justify-between gap-4">

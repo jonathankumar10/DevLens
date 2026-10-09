@@ -4,6 +4,8 @@ import { motion } from 'framer-motion'
 import ZoomControls from '../components/ui/ZoomControls'
 import { useZoomPan } from '../hooks/useZoomPan'
 import { AI_ITEMS } from '../constants/aiRegistry'
+import { NAV_SECTIONS } from '../constants/sections'
+import Breadcrumb from '../components/layout/Breadcrumb'
 
 // ── Graph constants ───────────────────────────────────────────────────────────
 
@@ -345,6 +347,11 @@ export default function AIIndex() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        { label: NAV_SECTIONS.ai.label },
+      ]} />
+
       <div className="mb-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Artificial Intelligence</h1>
         <p className="mt-2 text-slate-400 max-w-2xl">

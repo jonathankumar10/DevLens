@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { NAV_SECTIONS } from '../constants/sections'
+import Breadcrumb from '../components/layout/Breadcrumb'
 
 const AlgorithmsIndex = lazy(() => import('./AlgorithmsIndex'))
 const PatternsIndex   = lazy(() => import('./PatternsIndex'))
@@ -13,9 +15,16 @@ const TABS = [
 export default function DSAIndex() {
   const { pathname } = useLocation()
   const activeTo = pathname.startsWith('/patterns') ? '/patterns' : '/algorithms'
+  const activeTab = TABS.find((t) => t.to === activeTo)
 
   return (
     <div className="space-y-8">
+      <Breadcrumb trail={[
+        { label: 'Home', to: '/' },
+        NAV_SECTIONS.dsa,
+        { label: activeTab.label },
+      ]} />
+
       <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
         {TABS.map(({ label, to }) => {
           const active = activeTo === to

@@ -199,9 +199,37 @@ function SvgGraphsBfs({ c }) {
   )
 }
 
+function SvgTwoPointers({ c }) {
+  const xs = [4, 15, 26, 37, 48]
+  return (
+    <svg viewBox="0 0 60 60" width="44" height="44" fill="none">
+      {xs.map((x) => (
+        <rect key={x} x={x} y="22" width="10" height="10" rx="1.5"
+          stroke={c} strokeWidth="1" fill={c} fillOpacity="0.08" />
+      ))}
+      {/* Left pointer, closing inward */}
+      <motion.rect y="22" width="10" height="10" rx="1.5" fill={c}
+        animate={{ x: [4, 4, 15, 15, 26], fillOpacity: [0.4, 0.4, 0.4, 0.4, 0.4] }}
+        transition={{ duration: 2.4, repeat: Infinity, times: [0, 0.2, 0.45, 0.65, 1] }} />
+      {/* Right pointer, closing inward */}
+      <motion.rect y="22" width="10" height="10" rx="1.5" fill={c}
+        animate={{ x: [48, 48, 37, 37, 26], fillOpacity: [0.4, 0.4, 0.4, 0.4, 0.4] }}
+        transition={{ duration: 2.4, repeat: Infinity, times: [0, 0.2, 0.45, 0.65, 1] }} />
+      {/* L / R labels */}
+      <motion.text y="18" fontSize="7" fontWeight="bold" fill={c}
+        animate={{ x: [5, 5, 16, 16, 27] }}
+        transition={{ duration: 2.4, repeat: Infinity, times: [0, 0.2, 0.45, 0.65, 1] }}>L</motion.text>
+      <motion.text y="18" fontSize="7" fontWeight="bold" fill={c}
+        animate={{ x: [49, 49, 38, 38, 27] }}
+        transition={{ duration: 2.4, repeat: Infinity, times: [0, 0.2, 0.45, 0.65, 1] }}>R</motion.text>
+    </svg>
+  )
+}
+
 const PATTERN_SVG = {
   'arrays':        SvgArrays,
   'hash-map':      SvgHashMap,
+  'two-pointers':  SvgTwoPointers,
   'stack':         SvgStack,
   'binary-search': SvgBinarySearch,
   'linked-list':   SvgLinkedList,

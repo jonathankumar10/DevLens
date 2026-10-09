@@ -2,6 +2,38 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import LeetCodeBadge from '../ui/LeetCodeBadge'
 
+function groupItems(group) {
+  return group.subgroups ? group.subgroups.flatMap((sg) => sg.items) : group.items
+}
+
+function ItemLinks({ items, activeId, onNavigate }) {
+  return items.map((item) => {
+    const active = item.id === activeId
+    return (
+      <div
+        key={item.id}
+        className={`group flex items-center gap-1 rounded-md transition-colors ${
+          active
+            ? 'bg-blue-500/15 text-blue-300 font-medium'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+        }`}
+      >
+        <Link
+          to={item.path}
+          onClick={onNavigate}
+          className="flex-1 min-w-0 flex items-center gap-2.5 px-2.5 py-1.5 text-sm"
+        >
+          <span className={`shrink-0 w-1.5 h-1.5 rounded-full transition-colors ${
+            active ? 'bg-blue-400' : 'bg-slate-700 group-hover:bg-slate-500'
+          }`} />
+          <span className="truncate">{item.title}</span>
+        </Link>
+        <LeetCodeBadge url={item.problemUrl} label={item.problemLabel} className="mr-1.5" />
+      </div>
+    )
+  })
+}
+
 function GroupList({ groups, activeId, onNavigate }) {
   const [overrides, setOverrides] = useState({})
 
@@ -11,7 +43,7 @@ function GroupList({ groups, activeId, onNavigate }) {
   const isOpen = (key) =>
     key in overrides
       ? overrides[key]
-      : groups.find((g) => g.key === key)?.items.some((i) => i.id === activeId) ?? false
+      : groupItems(groups.find((g) => g.key === key) ?? { items: [] }).some((i) => i.id === activeId)
 
   const toggle = (key) => setOverrides((prev) => ({ ...prev, [key]: !isOpen(key) }))
 
@@ -39,31 +71,17 @@ function GroupList({ groups, activeId, onNavigate }) {
 
             {open && (
               <div className="ml-2.5 pl-2.5 border-l border-white/[0.08] space-y-0.5 pb-1.5">
-                {group.items.map((item) => {
-                  const active = item.id === activeId
-                  return (
-                    <div
-                      key={item.id}
-                      className={`group flex items-center gap-1 rounded-md transition-colors ${
-                        active
-                          ? 'bg-blue-500/15 text-blue-300 font-medium'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-                      }`}
-                    >
-                      <Link
-                        to={item.path}
-                        onClick={onNavigate}
-                        className="flex-1 min-w-0 flex items-center gap-2.5 px-2.5 py-1.5 text-sm"
-                      >
-                        <span className={`shrink-0 w-1.5 h-1.5 rounded-full transition-colors ${
-                          active ? 'bg-blue-400' : 'bg-slate-700 group-hover:bg-slate-500'
-                        }`} />
-                        <span className="truncate">{item.title}</span>
-                      </Link>
-                      <LeetCodeBadge url={item.problemUrl} label={item.problemLabel} className="mr-1.5" />
-                    </div>
-                  )
-                })}
+                {group.subgroups
+                  ? group.subgroups.map((sub) => (
+                      <div key={sub.key} className="pt-1.5 first:pt-0">
+                        <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                          {sub.label}
+                        </div>
+                        <ItemLinks items={sub.items} activeId={activeId} onNavigate={onNavigate} />
+                      </div>
+                    ))
+                  : <ItemLinks items={group.items} activeId={activeId} onNavigate={onNavigate} />
+                }
               </div>
             )}
           </div>
