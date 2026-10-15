@@ -6,7 +6,7 @@ const BASE_INTERVAL = 900 // ms at 1×
  * Drives step-by-step playback for any algorithm visualizer.
  * Returns controls and the current step object.
  *
- * speed — one of 0.25 | 0.5 | 1 | 1.25 | 2
+ * speed — playback multiplier (options are listed in StepControls)
  */
 export function useStepRunner(steps) {
   const [index,   setIndex]   = useState(0)

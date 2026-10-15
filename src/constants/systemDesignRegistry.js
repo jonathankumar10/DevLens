@@ -78,69 +78,67 @@ import distributedLoggingService from '../content/system-design/designs/distribu
 import distributedTaskScheduler from '../content/system-design/designs/distributed-task-scheduler/index.js'
 import shardedCounters         from '../content/system-design/designs/sharded-counters/index.js'
 
-// Ordered following the NeetCode System Design for Beginners curriculum.
-// Add new topics here — one import + one array entry.
+// Ordered following the learning roadmap in systemDesignRoadmap.js (journey
+// stages, then design tiers). Add new topics here — one import + one array
+// entry — and place the id in systemDesignRoadmap.js.
 export const SYSTEM_DESIGN = [
-  // Background
+  // How a Request Moves
+  networkingBasics,
+  dns,
+  tcpAndUdp,
+  http,
   computerArchitecture,
   applicationArchitecture,
+  // Data First
+  sql,
+  databaseIndexes,
+  acidAndBase,
+  caching,
+  databaseReplication,
+  consistencyModelsSpectrum,
+  consistencyPatterns,
+  capTheorem,
+  databaseSharding,
+  consistentHashing,
+  nosql,
+  objectStorage,
+  // Scaling the Monolith
+  proxiesAndLoadBalancing,
+  cdns,
+  rateLimiting,
+  // Think in Bottlenecks
+  loggingAndMonitoring,
+  failureModelsSpectrum,
+  availabilityPatterns,
+  // Distribute Only When Forced
+  messageQueues,
+  eventDrivenArchitecture,
+  microservices,
+  rpc,
+  apiParadigms,
+  apiDesign,
+  websockets,
+  distributedTracing,
+  sequencer,
+  // Communicating Trade-offs
   designRequirements,
   reshaded,
   abstractionsInSystemDesign,
-  consistencyModelsSpectrum,
-  failureModelsSpectrum,
-  rpc,
   buildingBlocksOverview,
-  // Networking
-  networkingBasics,
-  tcpAndUdp,
-  dns,
-  // APIs
-  http,
-  websockets,
-  apiParadigms,
-  apiDesign,
-  // Caching Basics
-  caching,
-  cdns,
-  // Proxies
-  proxiesAndLoadBalancing,
-  consistentHashing,
-  // Storage
-  sql,
-  nosql,
-  databaseReplication,
-  databaseSharding,
-  databaseIndexes,
-  acidAndBase,
-  objectStorage,
-  // Reliability
-  capTheorem,
-  consistencyPatterns,
-  availabilityPatterns,
-  // Scalability
-  rateLimiting,
-  sequencer,
-  // Messaging
-  messageQueues,
-  // Observability
-  loggingAndMonitoring,
-  distributedTracing,
-  // Architecture
-  microservices,
-  eventDrivenArchitecture,
-  // Designs
+  // Build Small First
   urlShortener,
-  keyValueStore,
   rateLimiterDesign,
   notificationSystem,
   chatSystem,
-  videoStreaming,
-  socialMediaFeed,
   fileStorage,
   searchAutocomplete,
+  // Same App, Bigger Scale
+  socialMediaFeed,
+  videoStreaming,
   errorMonitoringSystem,
   clientSideErrorMonitoring,
+  // Build the Building Blocks
+  keyValueStore,
   distributedCache,
   distributedMessageQueue,
   pubSub,
@@ -161,32 +159,4 @@ export const TYPE_LABEL = {
 export const TYPE_COLOR = {
   concept: 'text-sky-400 bg-sky-400/10',
   design:  'text-blue-400 bg-blue-400/10',
-}
-
-// category slug → display label
-export const SD_CATEGORY_LABELS = {
-  'hardware':       'Hardware',
-  'architecture':   'Architecture',
-  'requirements':   'Requirements',
-  'framework':      'Interview Framework',
-  'networking':     'Networking',
-  'apis':           'APIs',
-  'caching':        'Caching',
-  'proxies':        'Proxies',
-  'storage':        'Storage',
-  'web-services':   'Web Services',
-  'databases':      'Databases',
-  'security':       'Security',
-  'reliability':    'Reliability',
-  'scalability':    'Scalability',
-  'messaging':      'Messaging & Queues',
-  'observability':  'Observability',
-  'designs':        'System Designs',
-  'infrastructure': 'Infrastructure',
-  'social-media':   'Social Media',
-  'communication':  'Communication',
-  'data-platform':  'Data Platform',
-  'streaming':      'Streaming',
-  'search':         'Search',
-  'api-design':     'API Design',
 }

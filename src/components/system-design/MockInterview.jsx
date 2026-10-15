@@ -1,11 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import app from '../../lib/firebase'
-import { getUid } from '../../lib/chatShared'
+import { callInterviewChat } from '../../lib/firebase'
+import { getUserId } from '../../lib/userId'
 import ChatMessageBubble from '../ui/ChatMessageBubble'
-
-const functions = getFunctions(app)
-const interviewChatFn = httpsCallable(functions, 'interviewChat')
+import SectionLabel from '../ui/SectionLabel'
 
 const KICKOFF_MESSAGE = "I'm ready to start the interview. Please begin."
 const ASSESSMENT_MARKER = '**Mock Interview Assessment**'
@@ -35,7 +32,7 @@ export default function MockInterview({ design }) {
   const [error, setError]       = useState(null)
 
   const sessionId = useRef(null)
-  const uid       = useRef(getUid())
+  const uid       = useRef(getUserId())
   const rubric    = useRef(null)
   const bottomRef = useRef(null)
 
@@ -48,7 +45,7 @@ export default function MockInterview({ design }) {
     setError(null)
 
     try {
-      const { data } = await interviewChatFn({
+      const { data } = await callInterviewChat({
         uid:       uid.current,
         sessionId: sessionId.current,
         rubric:    rubric.current,
@@ -112,7 +109,7 @@ export default function MockInterview({ design }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mock interview</p>
+        <SectionLabel>Mock interview</SectionLabel>
         <div className="flex-1 h-px bg-white/[0.06]" />
       </div>
 

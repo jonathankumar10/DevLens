@@ -2,6 +2,8 @@
 // All AI learning topics defined inline.
 // Categories: history | ml | llms | workflows | agents | production | live-coding
 
+import { PALETTE } from './palette'
+
 export const LIVE_CODING_AI_GUIDE = {
   claudeMd: [
     'Create CLAUDE.md in the project root the moment you have a directory. It is a plain markdown file Claude reads as context on every prompt.',
@@ -36,16 +38,7 @@ export const AI_CATEGORY_LABELS = {
   'live-coding': 'Live Coding Interviews',
 }
 
-export const AI_COLORS = {
-  violet:  { text: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/25', badgeBg: 'bg-violet-500/15', badgeBorder: 'border-violet-500/30', dot: 'bg-violet-400', glow: '#8b5cf6' },
-  sky:     { text: 'text-sky-300',    bg: 'bg-sky-500/10',    border: 'border-sky-500/25',    badgeBg: 'bg-sky-500/15',    badgeBorder: 'border-sky-500/30',    dot: 'bg-sky-400',    glow: '#0ea5e9' },
-  amber:   { text: 'text-amber-300',  bg: 'bg-amber-500/10',  border: 'border-amber-500/25',  badgeBg: 'bg-amber-500/15',  badgeBorder: 'border-amber-500/30',  dot: 'bg-amber-400',  glow: '#f59e0b' },
-  teal:    { text: 'text-teal-300',   bg: 'bg-teal-500/10',   border: 'border-teal-500/25',   badgeBg: 'bg-teal-500/15',   badgeBorder: 'border-teal-500/30',   dot: 'bg-teal-400',   glow: '#14b8a6' },
-  emerald: { text: 'text-emerald-300',bg: 'bg-emerald-500/10',border: 'border-emerald-500/25',badgeBg: 'bg-emerald-500/15',badgeBorder: 'border-emerald-500/30',dot: 'bg-emerald-400',glow: '#10b981' },
-  blue:    { text: 'text-blue-300',   bg: 'bg-blue-500/10',   border: 'border-blue-500/25',   badgeBg: 'bg-blue-500/15',   badgeBorder: 'border-blue-500/30',   dot: 'bg-blue-400',   glow: '#3b82f6' },
-  rose:    { text: 'text-rose-300',   bg: 'bg-rose-500/10',   border: 'border-rose-500/25',   badgeBg: 'bg-rose-500/15',   badgeBorder: 'border-rose-500/30',   dot: 'bg-rose-400',   glow: '#f43f5e' },
-  indigo:  { text: 'text-indigo-300', bg: 'bg-indigo-500/10', border: 'border-indigo-500/25', badgeBg: 'bg-indigo-500/15', badgeBorder: 'border-indigo-500/30', dot: 'bg-indigo-400', glow: '#6366f1' },
-}
+export const AI_COLORS = PALETTE
 
 export const AI_ITEMS = [
   // ── History & Foundations ────────────────────────────────────────────────────

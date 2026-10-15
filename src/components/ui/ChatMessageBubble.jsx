@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { renderMarkdown } from '../../lib/chatShared'
+import { renderInlineMarkdown } from '../../lib/markdown'
 
 export default function ChatMessageBubble({ role, content, links = [], onLinkClick }) {
   const isUser = role === 'user'
@@ -13,7 +13,7 @@ export default function ChatMessageBubble({ role, content, links = [], onLinkCli
             : 'bg-slate-800 text-slate-200 border-l-2 border-blue-500/50 rounded-bl-sm'
         }`}
       >
-        {isUser ? content : renderMarkdown(content)}
+        {isUser ? content : renderInlineMarkdown(content)}
       </div>
 
       {links.length > 0 && (

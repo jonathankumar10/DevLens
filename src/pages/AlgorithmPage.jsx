@@ -1,23 +1,18 @@
-import React, { Suspense, useState, useCallback } from 'react'
+import { Suspense, useState, useCallback } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { ALGORITHMS, DIFFICULTY_COLOR, CATEGORY_LABELS } from '../constants/algorithmRegistry'
 import { NAV_SECTIONS } from '../constants/sections'
 import CodePanel from '../components/ui/CodePanel'
-import DetailSidebar from '../components/layout/DetailSidebar'
-import Breadcrumb from '../components/layout/Breadcrumb'
+import DetailPageLayout from '../components/detail/DetailPageLayout'
+import { SectionLabel } from '../components/detail/Panels'
 import { groupByCategoryAndDifficulty } from '../lib/groupByCategory'
+import { lazyGlob } from '../lib/lazyGlob'
 
 const SIDEBAR_GROUPS = groupByCategoryAndDifficulty(ALGORITHMS, CATEGORY_LABELS, '/algorithms')
 
-// Vite resolves this glob at build time — no manual imports ever needed.
-// To add a new visualizer: drop Visualizer.jsx in its algorithm folder. Done.
-const VISUALIZERS = import.meta.glob('../content/algorithms/*/Visualizer.jsx')
-
-// Lazy components must be created once, at module scope — not during render.
-const LAZY_VISUALIZERS = Object.fromEntries(
-  Object.entries(VISUALIZERS).map(([key, loader]) => [key, React.lazy(loader)])
-)
+// Vite resolves this glob at build time, so adding a visualizer is just
+// dropping Visualizer.jsx into its algorithm folder.
+const VISUALIZERS = lazyGlob(import.meta.glob('../content/algorithms/*/Visualizer.jsx'))
 
 export default function AlgorithmPage() {
   const { id } = useParams()
@@ -26,32 +21,29 @@ export default function AlgorithmPage() {
   const [currentStep, setCurrentStep] = useState(null)
   const [treeOrder,   setTreeOrder]   = useState('inorder')
 
-  const handleStep  = useCallback((s) => setCurrentStep(s), [])
-  const handleOrder = useCallback((o) => setTreeOrder(o),   [])
-
-  const VisualizerComponent = LAZY_VISUALIZERS[`../content/algorithms/${id}/Visualizer.jsx`] ?? null
+  const handleStep  = useCallback((step)  => setCurrentStep(step), [])
+  const handleOrder = useCallback((order) => setTreeOrder(order),  [])
 
   if (!algo) return <Navigate to="/algorithms" replace />
+
+  const Visualizer = VISUALIZERS[`../content/algorithms/${id}/Visualizer.jsx`]
 
   // tree-traversal keeps its code panel tab in sync with the order selector
   const syncedApproachId = algo.id === 'tree-traversal' ? treeOrder : undefined
 
   return (
-    <div className="lg:flex lg:items-start lg:gap-8">
-      <DetailSidebar groups={SIDEBAR_GROUPS} activeId={algo.id} title="Algorithms" />
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="flex-1 min-w-0 space-y-6"
-      >
-      <Breadcrumb trail={[
+    <DetailPageLayout
+      sidebarGroups={SIDEBAR_GROUPS}
+      sidebarTitle="Algorithms"
+      activeId={algo.id}
+      breadcrumb={[
         { label: 'Home', to: '/' },
         NAV_SECTIONS.dsa,
         { label: 'Algorithms', to: '/algorithms' },
         { label: algo.title },
-      ]} />
-
+      ]}
+      contentClassName="space-y-6"
+    >
       {/* Title + badges */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-xl sm:text-2xl font-bold text-white">{algo.title}</h1>
@@ -85,7 +77,7 @@ export default function AlgorithmPage() {
         {/* Problem statement */}
         {algo.description && (
           <div className="rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4 space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Problem</p>
+            <SectionLabel>Problem</SectionLabel>
             <p className="text-sm text-slate-300 leading-relaxed">{algo.description}</p>
           </div>
         )}
@@ -95,9 +87,7 @@ export default function AlgorithmPage() {
           <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/[0.05] px-5 py-4">
             <div className="mt-0.5 w-0.5 shrink-0 self-stretch rounded-full bg-blue-500/50" />
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-400">
-                How we visualize it
-              </p>
+              <SectionLabel className="text-blue-400">How we visualize it</SectionLabel>
               <p className="text-sm text-slate-300 leading-relaxed">{algo.metaphor}</p>
             </div>
           </div>
@@ -111,8 +101,8 @@ export default function AlgorithmPage() {
           <Suspense fallback={
             <div className="py-20 text-center text-slate-500 text-sm">Loading visualizer…</div>
           }>
-            {VisualizerComponent
-              ? <VisualizerComponent onStepChange={handleStep} onOrderChange={handleOrder} />
+            {Visualizer
+              ? <Visualizer onStepChange={handleStep} onOrderChange={handleOrder} />
               : <p className="text-slate-500 text-center py-10">Visualizer coming soon.</p>
             }
           </Suspense>
@@ -129,7 +119,6 @@ export default function AlgorithmPage() {
           </div>
         )}
       </div>
-      </motion.div>
-    </div>
+    </DetailPageLayout>
   )
 }

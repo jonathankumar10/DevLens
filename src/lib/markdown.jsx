@@ -1,18 +1,7 @@
-// Stable per-browser UUID for rate limiting (never tied to auth)
-export function getUid() {
-  const key = 'algviz-uid'
-  let uid = localStorage.getItem(key)
-  if (!uid) {
-    uid = crypto.randomUUID()
-    localStorage.setItem(key, uid)
-  }
-  return uid
-}
-
-// Lightweight markdown renderer (bold + inline code only)
-export function renderMarkdown(text) {
-  // Split on **bold** and `code` tokens
+// Minimal inline markdown for chat bubbles: **bold** and `code` only.
+export function renderInlineMarkdown(text) {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>

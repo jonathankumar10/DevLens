@@ -2,61 +2,11 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { SYSTEM_DESIGN } from '../constants/systemDesignRegistry'
+import { ROADMAP_STAGES, DESIGN_TIERS, JOURNEY_STEPS } from '../constants/systemDesignRoadmap'
+import ScaleJourney from '../components/system-design/ScaleJourney'
 import { NAV_SECTIONS } from '../constants/sections'
 import Breadcrumb from '../components/layout/Breadcrumb'
-
-// ── Section definitions ────────────────────────────────────────────────────────
-// Concepts are grouped into three top-level sections (mirroring how a system
-// design interview is actually reasoned about: what you need to know before
-// you start, the quality attributes you're designing for, and the technical
-// building blocks you assemble), each divided into labeled subsections.
-
-const SECTIONS = [
-  {
-    id:    'prerequisites',
-    label: 'Prerequisites',
-    description: 'Vocabulary and framework you need before tackling any design — read these first.',
-    hex:   '#f59e0b',
-    text:  'text-amber-400',
-    badge: 'bg-amber-500/15 text-amber-300',
-    subsections: [
-      { label: 'Architecture Basics',          ids: ['computer-architecture', 'application-architecture'] },
-      { label: 'Interview Framework',          ids: ['design-requirements', 'reshaded'] },
-      { label: 'Abstractions',                 ids: ['abstractions-in-system-design', 'rpc'] },
-      { label: 'Consistency & Failure Models', ids: ['consistency-models-spectrum', 'failure-models-spectrum'] },
-    ],
-  },
-  {
-    id:    'non-functional',
-    label: 'Non-Functional Characteristics',
-    description: 'The quality attributes that determine whether a design is actually good enough.',
-    hex:   '#f43f5e',
-    text:  'text-rose-400',
-    badge: 'bg-rose-500/15 text-rose-300',
-    subsections: [
-      { label: 'Availability & Reliability', ids: ['availability-patterns', 'cap-theorem'] },
-      { label: 'Consistency Patterns',       ids: ['consistency-patterns'] },
-      { label: 'Performance & Scale',        ids: ['rate-limiting', 'consistent-hashing'] },
-    ],
-  },
-  {
-    id:    'functional',
-    label: 'Functional Characteristics / Building Blocks',
-    description: 'The technical building blocks you assemble to actually construct a system.',
-    hex:   '#06b6d4',
-    text:  'text-cyan-400',
-    badge: 'bg-cyan-500/15 text-cyan-300',
-    subsections: [
-      { label: 'Overview',                ids: ['building-blocks-overview'] },
-      { label: 'Networking',              ids: ['networking-basics', 'tcp-and-udp', 'dns'] },
-      { label: 'APIs',                    ids: ['http', 'websockets', 'api-paradigms', 'api-design'] },
-      { label: 'Caching & Delivery',      ids: ['caching', 'cdns', 'proxies-and-load-balancing'] },
-      { label: 'Storage',                 ids: ['sql', 'nosql', 'database-replication', 'database-sharding', 'database-indexes', 'acid-and-base', 'object-storage'] },
-      { label: 'Messaging & Architecture', ids: ['message-queues', 'event-driven-architecture', 'microservices'] },
-      { label: 'Observability',           ids: ['logging-and-monitoring', 'distributed-tracing'] },
-    ],
-  },
-]
+import { SectionLabel } from '../components/detail/Panels'
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
@@ -82,27 +32,31 @@ const chipVariants = {
   show:   { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 320, damping: 22 } },
 }
 
-function ConceptCard({ item, section }) {
+function ConceptCard({ item, why, section }) {
   if (!item) return null
   return (
     <motion.div variants={chipVariants} whileHover={{ x: 4 }}>
       <Link
         to={item.path}
-        className="group flex w-full items-center justify-between rounded-md border border-l-4 px-4 py-2.5 text-sm font-medium text-slate-300 bg-white/[0.02] hover:text-white transition-colors"
+        className="group flex w-full items-center justify-between gap-3 rounded-md border border-l-4 px-4 py-2.5 text-sm font-medium text-slate-300 bg-white/[0.02] hover:text-white transition-colors"
         style={{ borderColor: `${section.hex}33`, borderLeftColor: `${section.hex}99` }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${section.hex}88`; e.currentTarget.style.borderLeftColor = section.hex; e.currentTarget.style.background = `${section.hex}14` }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${section.hex}33`; e.currentTarget.style.borderLeftColor = `${section.hex}99`; e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
       >
-        <span>{item.title}</span>
+        <span className="min-w-0">
+          <span className="block">{item.title}</span>
+          {why && <span className="block text-[11px] font-normal text-slate-500 leading-relaxed mt-0.5">{why}</span>}
+        </span>
         <span className="text-slate-600 group-hover:text-slate-400 transition-colors">→</span>
       </Link>
     </motion.div>
   )
 }
 
-function SubsectionRow({ subsection, byId, section }) {
-  const items = subsection.ids.map((id) => byId[id]).filter(Boolean)
-  if (items.length === 0) return null
+// One journey step: the bottleneck, then the concepts that relieve it.
+function StepRow({ step, stepIndex, byId, section }) {
+  const concepts = step.concepts.filter((c) => byId[c.id])
+  if (concepts.length === 0) return null
   return (
     <motion.div
       variants={{
@@ -112,26 +66,38 @@ function SubsectionRow({ subsection, byId, section }) {
       className="rounded-xl border border-white/10 bg-black/10 pl-4 pr-4 py-3.5 sm:pl-5 sm:pr-5"
       style={{ borderLeftColor: `${section.hex}77`, borderLeftWidth: '3px' }}
     >
-      <div className="flex items-center gap-2 mb-2.5">
+      <div className="flex items-center gap-2 mb-1">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-          {subsection.label}
+          {step.title}
         </p>
-        <span className="text-[10px] text-slate-600">· {items.length}</span>
+        <span className="text-[10px] text-slate-600">· {step.traffic}</span>
+        <Link
+          to={`/system-design?step=${stepIndex}`}
+          className="ml-auto text-[10px] text-slate-500 hover:text-slate-300 transition-colors whitespace-nowrap"
+        >
+          ▶ in journey
+        </Link>
       </div>
+      <p className="text-[11px] text-slate-500 leading-relaxed mb-2.5">
+        <span className="text-rose-400/80 font-medium">Problem:</span> {step.bottleneck}
+      </p>
       <motion.div
         variants={{ show: { transition: { staggerChildren: 0.05 } } }}
         className="flex flex-col gap-1.5"
       >
-        {items.map((item) => (
-          <ConceptCard key={item.id} item={item} section={section} />
+        {concepts.map((c) => (
+          <ConceptCard key={c.id} item={byId[c.id]} why={c.why} section={section} />
         ))}
       </motion.div>
+      <p className="text-[11px] text-slate-500 leading-relaxed mt-2.5">
+        <span className="text-amber-400/80 font-medium">Trade-off:</span> {step.tradeoff}
+      </p>
     </motion.div>
   )
 }
 
 function ConceptSection({ section, byId, sectionIndex }) {
-  const count = section.subsections.reduce((n, s) => n + s.ids.filter((id) => byId[id]).length, 0)
+  const count = section.steps.reduce((n, s) => n + s.concepts.filter((c) => byId[c.id]).length, 0)
   return (
     <motion.div
       initial="hidden"
@@ -154,10 +120,16 @@ function ConceptSection({ section, byId, sectionIndex }) {
           {count} concept{count !== 1 ? 's' : ''}
         </span>
       </div>
-      <p className="text-[11px] text-slate-500 leading-relaxed mb-5 max-w-lg">{section.description}</p>
+      <p className="text-[11px] text-slate-400 leading-relaxed mb-5 max-w-2xl">{section.constraint}</p>
       <div className="space-y-4">
-        {section.subsections.map((sub) => (
-          <SubsectionRow key={sub.label} subsection={sub} byId={byId} section={section} />
+        {section.steps.map((step) => (
+          <StepRow
+            key={step.id}
+            step={step}
+            stepIndex={JOURNEY_STEPS.findIndex((s) => s.id === step.id)}
+            byId={byId}
+            section={section}
+          />
         ))}
       </div>
     </motion.div>
@@ -183,7 +155,7 @@ function SvgBlueprint({ c }) {
 
 const DESIGN_HEX = '#6366f1'
 
-function DesignNode({ item, index }) {
+function DesignNode({ item, teaches, index }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -203,8 +175,10 @@ function DesignNode({ item, index }) {
           <p className="text-sm font-semibold text-white leading-snug group-hover:text-indigo-200 transition-colors">
             {item.title}
           </p>
-          {item.tagline && (
-            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed line-clamp-1">{item.tagline}</p>
+          {(teaches ?? item.tagline) && (
+            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed line-clamp-2">
+              {teaches ? <><span className="text-indigo-400/80">Teaches:</span> {teaches}</> : item.tagline}
+            </p>
           )}
         </div>
       </Link>
@@ -212,7 +186,8 @@ function DesignNode({ item, index }) {
   )
 }
 
-function DesignsTier({ designs }) {
+function DesignsTier({ byId }) {
+  const total = DESIGN_TIERS.reduce((n, t) => n + t.items.filter((d) => byId[d.id]).length, 0)
   return (
     <motion.div
       initial={{ opacity: 0, y: 28 }}
@@ -226,15 +201,27 @@ function DesignsTier({ designs }) {
         <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-400">System Designs</h2>
         <div className="flex-1 h-px bg-indigo-500/20" />
         <span className="text-[10px] rounded-full px-2 py-0.5 font-medium bg-indigo-500/15 text-indigo-300">
-          {designs.length} end-to-end walkthroughs
+          {total} end-to-end walkthroughs
         </span>
       </div>
-      <p className="text-[11px] text-slate-500 leading-relaxed mb-5 max-w-lg">
-        Put the concepts together — full system walkthroughs that draw on the sections above.
+      <p className="text-[11px] text-slate-400 leading-relaxed mb-5 max-w-2xl">
+        Don’t start with “Design YouTube.” Build small systems that force real decisions, then study how
+        products evolve as traffic grows, then design the building blocks themselves.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {designs.map((item, i) => (
-          <DesignNode key={item.id} item={item} index={i} />
+      <div className="space-y-6">
+        {DESIGN_TIERS.map((tier, t) => (
+          <div key={tier.id}>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-[10px] font-black font-mono text-indigo-400/50">{String.fromCharCode(65 + t)}</span>
+              <SectionLabel className="text-slate-300">{tier.label}</SectionLabel>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed mb-3">{tier.description}</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {tier.items.filter((d) => byId[d.id]).map((d, i) => (
+                <DesignNode key={d.id} item={byId[d.id]} teaches={d.teaches} index={i} />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </motion.div>
@@ -251,7 +238,6 @@ export default function SystemDesignIndex() {
   }, [])
 
   const conceptCount = useMemo(() => SYSTEM_DESIGN.filter((i) => i.type === 'concept').length, [])
-  const designs = useMemo(() => SYSTEM_DESIGN.filter((i) => i.type === 'design'), [])
 
   return (
     <div className="space-y-8">
@@ -265,26 +251,30 @@ export default function SystemDesignIndex() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white">System Design</h1>
         <p className="mt-2 text-slate-400 max-w-2xl">
-          {conceptCount} concepts, organized into prerequisites, non-functional characteristics, and
-          functional building blocks. Work through a section top to bottom, then click any concept to
-          deep-dive. Master the concepts before tackling the designs below.
+          System Design is the study of constraints, trade-offs and failure under scale. Instead of
+          memorizing diagrams, learn the {conceptCount} concepts in the order real systems need them: follow
+          one system from a single user to millions, and meet each concept at the moment a bottleneck
+          forces it — along with the trade-off it introduces.
         </p>
       </div>
 
-      {/* Concept sections */}
+      {/* Interactive journey */}
+      <ScaleJourney />
+
+      {/* Roadmap stages */}
       <div>
-        {SECTIONS.map((section, i) => (
+        {ROADMAP_STAGES.map((section, i) => (
           <div key={section.id}>
             <ConceptSection section={section} byId={byId} sectionIndex={i} />
-            {i < SECTIONS.length - 1 && (
-              <SectionConnector fromHex={section.hex} toHex={SECTIONS[i + 1].hex} />
+            {i < ROADMAP_STAGES.length - 1 && (
+              <SectionConnector fromHex={section.hex} toHex={ROADMAP_STAGES[i + 1].hex} />
             )}
           </div>
         ))}
       </div>
 
       {/* Designs tier */}
-      <DesignsTier designs={designs} />
+      <DesignsTier byId={byId} />
 
     </div>
   )

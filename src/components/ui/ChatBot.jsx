@@ -1,12 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import app from '../../lib/firebase'
-import { getUid } from '../../lib/chatShared'
+import { callChat } from '../../lib/firebase'
+import { getUserId } from '../../lib/userId'
 import ChatMessageBubble from './ChatMessageBubble'
-
-const functions = getFunctions(app)
-const chatFn   = httpsCallable(functions, 'chat')
 
 // ── Typing indicator ──────────────────────────────────────────────────────────
 
@@ -42,7 +38,7 @@ export default function ChatBot() {
   const [isLoading, setIsLoading] = useState(false)
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
-  const uid = useRef(getUid())
+  const uid = useRef(getUserId())
 
   // Auto-scroll to bottom whenever messages change
   useEffect(() => {
@@ -67,7 +63,7 @@ export default function ChatBot() {
     setIsLoading(true)
 
     try {
-      const { data } = await chatFn({ messages: next, uid: uid.current })
+      const { data } = await callChat({ messages: next, uid: uid.current })
 
       if (data.error === 'RATE_LIMITED') {
         setMessages((m) => [

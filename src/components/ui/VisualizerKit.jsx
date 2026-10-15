@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { treeHeight, CELL_STYLES } from '../../lib/vizHelpers'
+import SectionLabel from './SectionLabel'
 
 /**
  * Shared building blocks for algorithm visualizers: header, input panel,
@@ -25,7 +26,7 @@ export function VizHeader({ title, subtitle }) {
 export function InputPanel({ title = 'Try your own input', fields, onRun, error, examples = [] }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</p>
+      <SectionLabel>{title}</SectionLabel>
       <div className="flex gap-2 items-start flex-wrap">
         {fields.map((f) => (
           <div key={f.label} className={`flex flex-col gap-1 ${f.grow === false ? 'w-24' : 'flex-1 min-w-[160px]'}`}>
@@ -88,7 +89,7 @@ export function Panel({ title, legend, children, className = '' }) {
     <div className={`rounded-2xl border border-white/10 bg-[#070d1f] px-5 pt-5 pb-5 space-y-4 ${className}`}>
       {(title || legend) && (
         <div className="flex items-center justify-between flex-wrap gap-2">
-          {title && <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</p>}
+          {title && <SectionLabel>{title}</SectionLabel>}
           {legend && <Legend items={legend} />}
         </div>
       )}

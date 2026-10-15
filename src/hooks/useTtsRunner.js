@@ -64,7 +64,9 @@ export function useTtsRunner(steps, getText) {
     speak(toSpeechText(getText(runner.step)), runner.speed, onEnd)
   }, [runner.step, ttsEnabled, runner.speed, speak, handleSpeechEnd, getText])
 
-  // Speak immediately when TTS playback starts (step may not have changed)
+  // Speak immediately when TTS playback starts (step may not have changed).
+  // Keyed on ttsPlaying only: step/speed changes are handled by the effect
+  // above, and re-running here too would speak the same step twice.
   useEffect(() => {
     if (!ttsEnabled || !ttsPlaying) return
     speak(toSpeechText(getText(runner.step)), runner.speed, handleSpeechEnd)

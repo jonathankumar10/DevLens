@@ -5,6 +5,8 @@
 // items just doesn't render in the index or sidebar.
 // Categories: frontend | backend | database | devops | tooling
 
+import { PALETTE } from './palette'
+
 export const TECH_STACK_CATEGORY_LABELS = {
   frontend: 'Frontend',
   backend:  'Backend',
@@ -13,13 +15,7 @@ export const TECH_STACK_CATEGORY_LABELS = {
   tooling:  'Tooling',
 }
 
-export const TECH_STACK_COLORS = {
-  sky:     { text: 'text-sky-300',    bg: 'bg-sky-500/10',    border: 'border-sky-500/25',    badgeBg: 'bg-sky-500/15',    badgeBorder: 'border-sky-500/30',    dot: 'bg-sky-400',    glow: '#0ea5e9' },
-  violet:  { text: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/25', badgeBg: 'bg-violet-500/15', badgeBorder: 'border-violet-500/30', dot: 'bg-violet-400', glow: '#8b5cf6' },
-  orange:  { text: 'text-orange-300', bg: 'bg-orange-500/10', border: 'border-orange-500/25', badgeBg: 'bg-orange-500/15', badgeBorder: 'border-orange-500/30', dot: 'bg-orange-400', glow: '#fb923c' },
-  emerald: { text: 'text-emerald-300',bg: 'bg-emerald-500/10',border: 'border-emerald-500/25',badgeBg: 'bg-emerald-500/15',badgeBorder: 'border-emerald-500/30',dot: 'bg-emerald-400',glow: '#10b981' },
-  rose:    { text: 'text-rose-300',   bg: 'bg-rose-500/10',   border: 'border-rose-500/25',   badgeBg: 'bg-rose-500/15',   badgeBorder: 'border-rose-500/30',   dot: 'bg-rose-400',   glow: '#f43f5e' },
-}
+export const TECH_STACK_COLORS = PALETTE
 
 export const TECH_STACK_ITEMS = [
   // ── Frontend ────────────────────────────────────────────────────────────────

@@ -77,11 +77,7 @@ export const ALGORITHMS = [
   houseRobber,
 ]
 
-export const DIFFICULTY_COLOR = {
-  Easy:   'text-emerald-400 bg-emerald-400/10',
-  Medium: 'text-amber-400  bg-amber-400/10',
-  Hard:   'text-rose-400   bg-rose-400/10',
-}
+export { DIFFICULTY_COLOR } from './palette'
 
 // category slug → display label
 export const CATEGORY_LABELS = {

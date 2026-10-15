@@ -1,25 +1,18 @@
-import React, { Suspense, useState, useEffect } from 'react'
+import { Fragment, Suspense, useState, useEffect } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { SYSTEM_DESIGN, TYPE_COLOR, TYPE_LABEL, SD_CATEGORY_LABELS } from '../constants/systemDesignRegistry'
+import { TYPE_COLOR, TYPE_LABEL } from '../constants/systemDesignRegistry'
+import { ROADMAP_ITEMS, ROADMAP_SIDEBAR_GROUPS, WHY_BY_ID } from '../constants/systemDesignRoadmap'
 import { NAV_SECTIONS } from '../constants/sections'
 import MockInterview from '../components/system-design/MockInterview'
-import DetailSidebar from '../components/layout/DetailSidebar'
-import Breadcrumb from '../components/layout/Breadcrumb'
-import { groupByCategory } from '../lib/groupByCategory'
+import DetailPageLayout from '../components/detail/DetailPageLayout'
+import { findWithNeighbors } from '../lib/findWithNeighbors'
+import { lazyGlob } from '../lib/lazyGlob'
+import { SectionLabel } from '../components/detail/Panels'
 
-const SIDEBAR_GROUPS = groupByCategory(SYSTEM_DESIGN, SD_CATEGORY_LABELS, '/system-design')
-
-const DIAGRAMS               = import.meta.glob('../content/system-design/**/Diagram.jsx')
-const CONCEPT_ILLUSTRATIONS  = import.meta.glob('../content/system-design/**/ConceptIllustration.jsx')
-
-// Lazy components must be created once, at module scope — not during render.
-const LAZY_DIAGRAMS = Object.fromEntries(
-  Object.entries(DIAGRAMS).map(([key, loader]) => [key, React.lazy(loader)])
-)
-const LAZY_CONCEPT_ILLUSTRATIONS = Object.fromEntries(
-  Object.entries(CONCEPT_ILLUSTRATIONS).map(([key, loader]) => [key, React.lazy(loader)])
-)
+// Optional per-item visuals: content/system-design/<concepts|designs>/<id>/{Diagram,ConceptIllustration}.jsx
+const DIAGRAMS              = lazyGlob(import.meta.glob('../content/system-design/**/Diagram.jsx'))
+const CONCEPT_ILLUSTRATIONS = lazyGlob(import.meta.glob('../content/system-design/**/ConceptIllustration.jsx'))
 
 // ── Component animations ──────────────────────────────────────────────────────
 
@@ -111,7 +104,7 @@ function CpuAnimation({ color }) {
     <div className="bg-[#060e20] rounded-xl mx-4 sm:mx-5 mb-3 px-3 py-4 space-y-3">
       <div className="flex items-center justify-between gap-1">
         {stages.map((s, i) => (
-          <React.Fragment key={s.label}>
+          <Fragment key={s.label}>
             <motion.div
               className="flex-1 h-9 rounded-lg border flex flex-col items-center justify-center gap-0.5"
               animate={{
@@ -136,7 +129,7 @@ function CpuAnimation({ color }) {
                 transition={{ duration: 0.18 }}
               />
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
       <motion.p
@@ -402,7 +395,7 @@ function PipelineAnimation({ color }) {
     <div className="bg-[#060e20] rounded-xl mx-4 sm:mx-5 mb-3 px-3 py-4">
       <div className="flex items-center gap-1">
         {stages.map((s, i) => (
-          <React.Fragment key={s}>
+          <Fragment key={s}>
             <motion.div
               className="flex-1 h-8 rounded-lg border flex items-center justify-center"
               animate={{
@@ -416,7 +409,7 @@ function PipelineAnimation({ color }) {
               </span>
             </motion.div>
             {i < stages.length - 1 && <div className="w-2 h-px bg-slate-700 shrink-0" />}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     </div>
@@ -804,12 +797,12 @@ const REQ_COLUMNS = [
 function RequirementsSection({ requirements }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1">Requirements</p>
+      <SectionLabel className="text-slate-500 px-1">Requirements</SectionLabel>
       <div className="grid gap-4 sm:grid-cols-3">
         {REQ_COLUMNS.map(({ key, label, accent, dot, border }) =>
           requirements[key]?.length > 0 && (
             <div key={key} className={`rounded-xl border ${border} bg-white/[0.02] px-5 py-4 space-y-3`}>
-              <p className={`text-[11px] font-semibold uppercase tracking-wider ${accent}`}>{label}</p>
+              <SectionLabel className={accent}>{label}</SectionLabel>
               <ul className="space-y-2.5">
                 {requirements[key].map((r, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-slate-300 leading-relaxed">
@@ -831,7 +824,7 @@ function RequirementsSection({ requirements }) {
 function DataModelSection({ dataModel }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1">Data Model</p>
+      <SectionLabel className="text-slate-500 px-1">Data Model</SectionLabel>
       <div className="grid gap-4 sm:grid-cols-2">
         {dataModel.map((entity) => (
           <div key={entity.entity} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
@@ -879,7 +872,7 @@ const METHOD_COLOR = {
 function ApiDesignSection({ apiDesign }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1">API Design</p>
+      <SectionLabel className="text-slate-500 px-1">API Design</SectionLabel>
       <div className="space-y-2">
         {apiDesign.map((endpoint, i) => (
           <div key={i} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
@@ -965,10 +958,10 @@ function LinearFlow({ nodes }) {
   return (
     <div className="flex items-center flex-wrap gap-y-4 overflow-x-auto py-2">
       {nodes.map((node, i) => (
-        <React.Fragment key={i}>
+        <Fragment key={i}>
           <HldNodeEntry entry={node} />
           {i < nodes.length - 1 && <HldArrow />}
-        </React.Fragment>
+        </Fragment>
       ))}
     </div>
   )
@@ -980,10 +973,10 @@ function BranchedFlow({ preFlow, branches }) {
       {/* Pre-fork nodes */}
       <div className="flex items-center shrink-0">
         {preFlow.map((node, i) => (
-          <React.Fragment key={i}>
+          <Fragment key={i}>
             <HldNode node={node} />
             <HldArrow />
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
 
@@ -1010,10 +1003,10 @@ function BranchedFlow({ preFlow, branches }) {
                 {branch.label}
               </span>
               {branch.nodes.map((node, ni) => (
-                <React.Fragment key={ni}>
+                <Fragment key={ni}>
                   <HldNodeEntry entry={node} />
                   {ni < branch.nodes.length - 1 && <HldArrow />}
-                </React.Fragment>
+                </Fragment>
               ))}
             </div>
           </div>
@@ -1030,7 +1023,7 @@ function HldSection({ hldFlows }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 px-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">High Level Design</p>
+        <SectionLabel>High Level Design</SectionLabel>
         <div className="flex-1 h-px bg-white/[0.06]" />
         <span className="text-[10px] text-slate-600">{hldFlows.length} flows</span>
       </div>
@@ -1337,7 +1330,7 @@ function DeepDiveSection({ items }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 px-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Deep Dive</p>
+        <SectionLabel>Deep Dive</SectionLabel>
         <div className="flex-1 h-px bg-white/[0.06]" />
         <div className="flex items-center gap-1.5">
           {['mid', 'senior', 'staff'].map((level) => (
@@ -1372,7 +1365,7 @@ const LEVEL_COLS = [
 function LevelExpectationsSection({ rows }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1">Level Expectations</p>
+      <SectionLabel className="text-slate-500 px-1">Level Expectations</SectionLabel>
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
         {/* Header */}
         <div className="grid grid-cols-4 border-b border-white/[0.06] bg-white/[0.02]">
@@ -1408,79 +1401,87 @@ function LevelExpectationsSection({ rows }) {
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Why this exists ───────────────────────────────────────────────────────────
 
-function AdjacentNav({ prevItem, nextItem }) {
-  if (!prevItem && !nextItem) return null
+function WhyItExists({ why }) {
+  if (!why) return null
+
+  if (why.kind === 'design') {
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-indigo-500/25 bg-indigo-500/[0.05] px-5 py-3">
+        <span className="text-[10px] rounded-full px-2 py-0.5 font-semibold bg-indigo-500/15 text-indigo-300">
+          {why.tier.label}
+        </span>
+        <p className="text-sm text-slate-300">
+          <span className="text-indigo-400 font-medium">Teaches:</span> {why.teaches}
+        </p>
+      </div>
+    )
+  }
+
+  const { stage } = why
+  const cells = [
+    { label: 'The problem',        text: why.problem,  tone: 'text-rose-400',  border: 'border-rose-500/20',  bg: 'bg-rose-500/[0.05]' },
+    { label: 'What this solves',   text: why.why,      tone: stage.text,       border: 'border-white/10',     bg: 'bg-white/[0.02]', style: { borderColor: `${stage.hex}40`, background: `${stage.hex}0d` } },
+    { label: 'Trade-off it brings', text: why.tradeoff, tone: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/[0.05]' },
+  ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-      {prevItem ? (
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <SectionLabel>Why this exists</SectionLabel>
+        <span className={`text-[10px] rounded-full px-2 py-0.5 font-semibold ${stage.badge}`}>
+          Stage {why.stageIndex + 1} · {stage.label}
+        </span>
+        <span className="text-[10px] text-slate-600">{why.stepTitle}</span>
         <Link
-          to={prevItem.path}
-          className="group rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 transition-colors px-5 py-4 flex items-center gap-3"
+          to={`/system-design?step=${why.stepIndex}`}
+          className="ml-auto text-[11px] text-slate-400 hover:text-white transition-colors"
         >
-          <svg className="shrink-0 w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">Previous</p>
-            <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors truncate">{prevItem.title}</p>
-          </div>
+          ▶ See it in the journey
         </Link>
-      ) : <div />}
-      {nextItem && (
-        <Link
-          to={nextItem.path}
-          className="group rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 transition-colors px-5 py-4 flex items-center justify-end gap-3 text-right"
-        >
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">Next</p>
-            <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors truncate">{nextItem.title}</p>
+      </div>
+      <div className="grid gap-2 md:grid-cols-3">
+        {cells.map((c, i) => (
+          <div key={c.label} className="relative">
+            <div className={`h-full rounded-xl border px-4 py-3 ${c.border} ${c.bg}`} style={c.style}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${c.tone}`}>{c.label}</p>
+              <p className="text-sm text-slate-300 leading-relaxed">{c.text}</p>
+            </div>
+            {i < cells.length - 1 && (
+              <span className="hidden md:block absolute -right-2 top-1/2 -translate-y-1/2 z-10 text-slate-600 text-xs">→</span>
+            )}
           </div>
-          <svg className="shrink-0 w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
-      )}
+        ))}
+      </div>
     </div>
   )
 }
 
 export default function SystemDesignPage() {
-  const { id }  = useParams()
-  const index   = SYSTEM_DESIGN.findIndex((s) => s.id === id)
-  const item    = SYSTEM_DESIGN[index]
-
-  const folder = item ? `${item.type}s` : null
-  const ConceptIllustrationComponent = folder
-    ? LAZY_CONCEPT_ILLUSTRATIONS[`../content/system-design/${folder}/${id}/ConceptIllustration.jsx`] ?? null
-    : null
-  const DiagramComponent = folder
-    ? LAZY_DIAGRAMS[`../content/system-design/${folder}/${id}/Diagram.jsx`] ?? null
-    : null
+  const { id } = useParams()
+  const { item, prevItem, nextItem } = findWithNeighbors(ROADMAP_ITEMS, id)
 
   if (!item) return <Navigate to="/system-design" replace />
 
-  const prevItem = index > 0 ? SYSTEM_DESIGN[index - 1] : null
-  const nextItem = index < SYSTEM_DESIGN.length - 1 ? SYSTEM_DESIGN[index + 1] : null
+  const folder = `../content/system-design/${item.type}s/${item.id}`
+  const ConceptIllustration = CONCEPT_ILLUSTRATIONS[`${folder}/ConceptIllustration.jsx`]
+  const Diagram             = DIAGRAMS[`${folder}/Diagram.jsx`]
 
   return (
-    <div className="lg:flex lg:items-start lg:gap-8">
-      <DetailSidebar groups={SIDEBAR_GROUPS} activeId={item.id} title="System Design" />
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="flex-1 min-w-0 space-y-8"
-      >
-      <Breadcrumb trail={[
+    <DetailPageLayout
+      sidebarGroups={ROADMAP_SIDEBAR_GROUPS}
+      sidebarTitle="System Design"
+      activeId={item.id}
+      breadcrumb={[
         { label: 'Home', to: '/' },
         NAV_SECTIONS.systemDesign,
         { label: TYPE_LABEL[item.type], to: '/system-design' },
         { label: item.title },
-      ]} />
-
+      ]}
+      prevItem={prevItem}
+      nextItem={nextItem}
+    >
       {/* Title + type badge */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">{item.title}</h1>
@@ -1489,11 +1490,14 @@ export default function SystemDesignPage() {
         </span>
       </div>
 
+      {/* Why this exists — where the item sits in the roadmap */}
+      <WhyItExists why={WHY_BY_ID[item.id]} />
+
       {/* Hero row: Overview + Mental Model */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {item.description && (
           <div className="rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4 space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Overview</p>
+            <SectionLabel>Overview</SectionLabel>
             <p className="text-sm text-slate-300 leading-relaxed">{item.description}</p>
           </div>
         )}
@@ -1501,7 +1505,7 @@ export default function SystemDesignPage() {
           <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/[0.05] px-5 py-4">
             <div className="mt-0.5 w-0.5 shrink-0 self-stretch rounded-full bg-blue-500/50" />
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-400">Mental model</p>
+              <SectionLabel className="text-blue-400">Mental model</SectionLabel>
               <p className="text-sm text-slate-300 leading-relaxed">{item.metaphor}</p>
             </div>
           </div>
@@ -1509,9 +1513,9 @@ export default function SystemDesignPage() {
       </div>
 
       {/* Concept illustration */}
-      {ConceptIllustrationComponent && (
+      {ConceptIllustration && (
         <Suspense fallback={null}>
-          <ConceptIllustrationComponent />
+          <ConceptIllustration />
         </Suspense>
       )}
 
@@ -1528,9 +1532,9 @@ export default function SystemDesignPage() {
       {item.hldFlows?.length > 0 && <HldSection hldFlows={item.hldFlows} />}
 
       {/* Diagram */}
-      {DiagramComponent && (
+      {Diagram && (
         <div className="flex items-center gap-3 px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Interactive Walkthrough</p>
+          <SectionLabel>Interactive Walkthrough</SectionLabel>
           <div className="flex-1 h-px bg-white/[0.06]" />
         </div>
       )}
@@ -1538,8 +1542,8 @@ export default function SystemDesignPage() {
         <Suspense fallback={
           <div className="py-20 text-center text-slate-500 text-sm">Loading diagram…</div>
         }>
-          {DiagramComponent
-            ? <DiagramComponent />
+          {Diagram
+            ? <Diagram />
             : (
               <div className="py-16 text-center space-y-2">
                 <p className="text-slate-400 font-medium">Interactive diagram coming soon</p>
@@ -1553,7 +1557,7 @@ export default function SystemDesignPage() {
       {/* How it works */}
       {item.howItWorks?.length > 0 && (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4 space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">How it works</p>
+          <SectionLabel>How it works</SectionLabel>
           <ol className="space-y-3">
             {item.howItWorks.map((step, i) => (
               <motion.li
@@ -1584,7 +1588,7 @@ export default function SystemDesignPage() {
       {item.components?.length > 0 && (
         <div className="space-y-5">
           <div className="flex items-center gap-3 px-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Components</p>
+            <SectionLabel>Components</SectionLabel>
             <div className="flex-1 h-px bg-white/[0.06]" />
             <span className="text-[10px] text-slate-600">{item.components.length} components</span>
           </div>
@@ -1599,7 +1603,7 @@ export default function SystemDesignPage() {
       {/* Key takeaways */}
       {item.keyPoints?.length > 0 && (
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-1">Key takeaways</p>
+          <SectionLabel className="text-slate-500 px-1">Key takeaways</SectionLabel>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {item.keyPoints.map((point, i) => (
               <motion.div
@@ -1637,9 +1641,6 @@ export default function SystemDesignPage() {
         </div>
       )}
 
-      {/* Next / Previous */}
-      <AdjacentNav prevItem={prevItem} nextItem={nextItem} />
-      </motion.div>
-    </div>
+    </DetailPageLayout>
   )
 }

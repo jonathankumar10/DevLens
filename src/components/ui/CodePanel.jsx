@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// ─── Java tokenizer ───────────────────────────────────────────────────────────
+// ─── Java ─────────────────────────────────────────────────────────────────────
 
 const JAVA_KEYWORDS = new Set([
   'public','private','protected','class','interface','void','int','boolean',
@@ -13,28 +13,9 @@ const JAVA_TYPES = new Set([
   'Map','HashMap','LinkedList','Queue','ArrayList','List','Set','HashSet',
   'String','Integer','TreeNode','Node','Graph','Arrays',
 ])
-const JAVA_TOKEN_RE = /(\/\/[^\n]*)|(\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|([^\w\s])|( +)/g
+const JAVA_TOKEN_RE = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|([^\w\s])|( +)/g
 
-function tokenizeJava(line) {
-  const tokens = []
-  let m
-  JAVA_TOKEN_RE.lastIndex = 0
-  while ((m = JAVA_TOKEN_RE.exec(line)) !== null) {
-    const [full, lineComment, blockComment, str, num, ident] = m
-    if (lineComment || blockComment) tokens.push({ t: 'cm', v: full })
-    else if (str)   tokens.push({ t: 'st', v: full })
-    else if (num)   tokens.push({ t: 'nm', v: full })
-    else if (ident) {
-      if (JAVA_KEYWORDS.has(ident))  tokens.push({ t: 'kw', v: full })
-      else if (JAVA_TYPES.has(ident)) tokens.push({ t: 'ty', v: full })
-      else tokens.push({ t: 'id', v: full })
-    }
-    else tokens.push({ t: 'op', v: full })
-  }
-  return tokens
-}
-
-// ─── Python tokenizer ─────────────────────────────────────────────────────────
+// ─── Python ───────────────────────────────────────────────────────────────────
 
 const PY_KEYWORDS = new Set([
   'def','if','else','elif','for','while','return','in','not','and','or','is',
@@ -49,37 +30,47 @@ const PY_BUILTINS = new Set([
 ])
 const PY_TOKEN_RE = /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|([^\w\s])|( +)/g
 
-function tokenizePython(line) {
+// ─── Tokenizer ────────────────────────────────────────────────────────────────
+
+const LANGUAGES = {
+  java:   { pattern: JAVA_TOKEN_RE, keywords: JAVA_KEYWORDS, types: JAVA_TYPES },
+  python: { pattern: PY_TOKEN_RE,   keywords: PY_KEYWORDS,   types: PY_BUILTINS },
+}
+
+// Splits one line into `{ kind, text }` tokens for syntax coloring.
+// Both regexes use the same capture-group order:
+//   1 comment, 2 string, 3 number, 4 identifier; anything else is an operator
+//   or whitespace.
+function tokenize(line, language) {
+  const { pattern, keywords, types } = LANGUAGES[language] ?? LANGUAGES.java
   const tokens = []
-  let m
-  PY_TOKEN_RE.lastIndex = 0
-  while ((m = PY_TOKEN_RE.exec(line)) !== null) {
-    const [full, comment, str, num, ident] = m
-    if (comment) tokens.push({ t: 'cm', v: full })
-    else if (str)   tokens.push({ t: 'st', v: full })
-    else if (num)   tokens.push({ t: 'nm', v: full })
-    else if (ident) {
-      if (PY_KEYWORDS.has(ident))  tokens.push({ t: 'kw', v: full })
-      else if (PY_BUILTINS.has(ident)) tokens.push({ t: 'ty', v: full })
-      else tokens.push({ t: 'id', v: full })
+  pattern.lastIndex = 0
+
+  let match
+  while ((match = pattern.exec(line)) !== null) {
+    const [text, comment, string, number, identifier] = match
+    let kind = 'operator'
+    if (comment)      kind = 'comment'
+    else if (string)  kind = 'string'
+    else if (number)  kind = 'number'
+    else if (identifier) {
+      if (keywords.has(identifier))   kind = 'keyword'
+      else if (types.has(identifier)) kind = 'type'
+      else                            kind = 'identifier'
     }
-    else tokens.push({ t: 'op', v: full })
+    tokens.push({ kind, text })
   }
   return tokens
 }
 
-function tokenize(line, language) {
-  return language === 'python' ? tokenizePython(line) : tokenizeJava(line)
-}
-
 const TOKEN_COLOR = {
-  kw: 'text-blue-400',
-  ty: 'text-sky-300',
-  cm: 'text-slate-500 italic',
-  st: 'text-emerald-400',
-  nm: 'text-orange-400',
-  id: 'text-slate-100',
-  op: 'text-slate-400',
+  keyword:    'text-blue-400',
+  type:       'text-sky-300',
+  comment:    'text-slate-500 italic',
+  string:     'text-emerald-400',
+  number:     'text-orange-400',
+  identifier: 'text-slate-100',
+  operator:   'text-slate-400',
 }
 
 // ─── CodeLine ─────────────────────────────────────────────────────────────────
@@ -99,9 +90,9 @@ function CodeLine({ tokens, lineNum, highlighted, isCurrent }) {
         {lineNum}
       </span>
       <span className="flex-1 pr-4 whitespace-pre">
-        {tokens.map((tok, i) => (
-          <span key={i} className={TOKEN_COLOR[tok.t] ?? 'text-slate-300'}>
-            {tok.v}
+        {tokens.map((token, i) => (
+          <span key={i} className={TOKEN_COLOR[token.kind]}>
+            {token.text}
           </span>
         ))}
       </span>
@@ -131,26 +122,16 @@ export default function CodePanel({ solution, step, syncedApproachId }) {
   const hasPython = !!(approach?.python)
   const currentLang = hasPython ? activeLang : 'java'
 
-  // Resolve code + highlighter for the current language
-  const impl = currentLang === 'python' ? approach?.python : (approach?.java ?? approach)
-  const code         = impl?.code         ?? approach?.code ?? ''
-  const getHL        = impl?.getHighlightLines
-  const legacyLines  = impl?.stepLines ?? approach?.stepLines
-
-  const highlightedLines = (() => {
-    if (!step) return []
-    if (getHL)        return getHL(step)
-    if (legacyLines && step.type) return legacyLines[step.type] ?? []
-    return []
-  })()
+  // Each approach has `java` and optionally `python`: { code, getHighlightLines(step) }
+  const implementation   = approach?.[currentLang]
+  const code             = implementation?.code ?? ''
+  const highlightedLines = (step && implementation?.getHighlightLines?.(step)) ?? []
 
   const highlightSet = new Set(highlightedLines)
   const currentLine  = highlightedLines[0] ?? null
 
-  const language = currentLang === 'python' ? 'python' : (approach?.language ?? 'java')
-
   const lines = code.split('\n')
-  const tokenizedLines = lines.map((line) => tokenize(line.length ? line : ' ', language))
+  const tokenizedLines = lines.map((line) => tokenize(line.length ? line : ' ', currentLang))
 
   useEffect(() => {
     if (!scrollRef.current || !currentLine) return
