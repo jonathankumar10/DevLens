@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: '1-D Dynamic Programming',
   category: '1d-dp',
-  path: '/algorithms/house-robber',
   description: 'Houses along a street each hold some money (nums[i]). Adjacent houses have connected alarms, so you can\'t rob two neighbours on the same night. Return the maximum amount you can rob.',
   metaphor: 'Walk down the street keeping a running ledger: dp[i] is the best haul using only the first i+1 houses. At each house there are exactly two choices — skip it and keep dp[i−1], or rob it and add its cash to dp[i−2] (the best haul that left its neighbour alone). Take the bigger one.',
   tags: ['dynamic-programming', 'array'],

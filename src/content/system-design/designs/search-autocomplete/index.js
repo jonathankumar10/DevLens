@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'search-autocomplete',
-  type:        'design',
-  title:       'Design Search Autocomplete',
-  category:    'designs',
-  tags:        ['autocomplete', 'typeahead', 'trie', 'prefix-search', 'top-k', 'caching', 'ranking', 'personalization', 'debouncing', 'suggestion-api'],
-  description: 'Design a typeahead search suggestion system (like Google\'s search bar) that returns the top 5–10 most relevant query completions for a prefix as the user types, with sub-100ms response time. The system must handle thousands of requests per second per character typed, rank suggestions by popularity, refresh rankings as search trends change, and optionally personalize suggestions per user.',
+  ...meta,
   metaphor:    "A library reference desk with a card catalog pre-sorted by popularity. As you spell out letters, the librarian flips to the tab for your prefix and reads the top entries — already ranked by how often patrons have requested each book. The librarian doesn't search the stacks in real time; the catalog was pre-built during quiet hours from a log of all patron requests.",
-  path:        '/system-design/search-autocomplete',
   howItWorks: [
     'Trie data structure: a prefix tree where each path from root to node represents a prefix. Each node stores the top-K suggestions for that prefix (pre-computed). Lookup is O(prefix_length) — fast regardless of dataset size. A trie for all English words is small enough to fit in memory on a single node. For 1B+ queries, the trie is sharded by prefix range.',
     'Top-K pre-computation: the trie stores the top 5 suggestions at each node, not just the node\'s own word. Pre-computation traverses the trie bottom-up, aggregating frequency counts from the log of past searches. This means returning suggestions is a single node lookup — no traversal or sorting at query time.',

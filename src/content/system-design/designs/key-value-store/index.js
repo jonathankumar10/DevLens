@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'key-value-store',
-  type:        'design',
-  title:       'Design a Key-Value Store',
-  category:    'designs',
-  tags:        ['key-value', 'distributed-hash-table', 'consistent-hashing', 'replication', 'conflict-resolution', 'vector-clocks', 'gossip-protocol', 'dynamo'],
-  description: 'Design a distributed key-value store (like DynamoDB, Cassandra, or Redis Cluster) that supports GET, PUT, and DELETE operations on arbitrary byte-value pairs, with high availability, horizontal scalability, and tunable consistency across geographically distributed nodes.',
+  ...meta,
   metaphor:    "A network of post office boxes spread across a country. Each box has a unique number (key) and can hold any document (value). To add redundancy, copies of important boxes are kept in multiple cities. A consistent hashing ring decides which city owns which box range. When boxes get too full, new cities are added and the ring rebalances automatically.",
-  path:        '/system-design/key-value-store',
   howItWorks: [
     'Data partitioning with consistent hashing: a hash ring maps key hashes to node positions. Each node owns a range of the ring. Adding a node only rehashes its portion of the ring — not all keys. Virtual nodes (vnodes) ensure even distribution and smooth rebalancing when nodes join or leave.',
     'Replication: each key is replicated to N nodes (typically 3) — the primary and the next N-1 nodes clockwise on the ring. Writes are propagated asynchronously. Quorum reads and writes (W + R > N) guarantee overlap between the write set and read set, providing tunable consistency.',

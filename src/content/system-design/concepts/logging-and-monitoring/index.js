@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'logging-and-monitoring',
-  type:        'concept',
-  title:       'Logging & Monitoring',
-  category:    'observability',
-  tags:        ['logging', 'monitoring', 'metrics', 'alerting', 'structured-logging', 'prometheus', 'grafana', 'elk-stack', 'cloudwatch', 'slos', 'golden-signals'],
-  description: 'Logging captures discrete events that happened (requests, errors, state transitions). Monitoring tracks the continuous health of a system through numeric metrics (latency, error rate, throughput). Together they form the foundation of observability — the ability to understand a system\'s internal state from its external outputs. Without them, production incidents are unsolvable puzzles.',
+  ...meta,
   metaphor:    "A hospital has two parallel systems: a patient chart (logging) that records every nurse visit, medication administered, and test result in timestamped detail; and a wall of monitors (monitoring) that continuously display heart rate, blood pressure, and oxygen saturation with threshold alarms. When something goes wrong, doctors use both: the monitors tell them something is wrong right now, and the chart tells them why.",
-  path:        '/system-design/logging-and-monitoring',
   howItWorks: [
     'Structured logging: emit logs as JSON rather than free-text strings. Each log line includes fixed fields: timestamp, severity, service, trace ID, user ID, and an event-specific payload. Structured logs are machine-parseable — log aggregation systems (Elasticsearch, BigQuery, CloudWatch Insights) can filter, aggregate, and alert on specific fields instantly.',
     'Log aggregation: services emit logs to stdout; a sidecar or agent (Fluentd, Filebeat, Vector) ships them to a central store. The ELK stack (Elasticsearch + Logstash + Kibana) is the classic self-hosted solution. Managed alternatives: AWS CloudWatch Logs, GCP Cloud Logging, Datadog. Never query raw log files on individual servers — by the time you need them, the pod may be dead.',

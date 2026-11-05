@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'event-driven-architecture',
-  type:        'concept',
-  title:       'Event-Driven Architecture',
-  category:    'architecture',
-  tags:        ['event-driven', 'event-sourcing', 'cqrs', 'pub-sub', 'kafka', 'choreography', 'orchestration', 'domain-events', 'outbox-pattern'],
-  description: 'Event-driven architecture (EDA) is a pattern where components communicate by emitting and consuming events rather than calling each other directly. An event represents a fact that happened — "OrderPlaced", "PaymentProcessed", "InventoryReserved". Producers emit events without knowing who will consume them. Consumers react to events independently. This produces a system where services are loosely coupled, highly extensible, and naturally asynchronous.',
+  ...meta,
   metaphor:    'A public announcement system in a city versus a telephone tree. In a telephone tree (direct calls), the organizer must know who needs to hear the news and call each person individually. In the announcement system (event-driven), the organizer broadcasts once — "Game starts at 7 PM" — and anyone who cares tunes in: sports fans, food vendors, parking attendants. Adding a new listener (say, a taxi dispatcher) requires no change to the announcer.',
-  path:        '/system-design/event-driven-architecture',
   howItWorks: [
     'Events as facts: an event captures what happened, immutably. "Order 123 was placed by User 456 at 14:32:05 for items X, Y, Z at $89.99." Events are past tense, timestamped, and never modified. Contrast with a command ("PlaceOrder") which is a request for something to happen and can be rejected.',
     'Choreography vs orchestration: in choreography, each service listens for events and reacts — no central coordinator. OrderService emits "OrderPlaced"; PaymentService hears it and charges the card; InventoryService hears it and reserves stock; NotificationService hears it and sends a confirmation. In orchestration, a central workflow engine (Temporal, Step Functions) explicitly directs each step.',

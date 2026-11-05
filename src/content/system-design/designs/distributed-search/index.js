@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'distributed-search',
-  type:        'design',
-  title:       'Design a Distributed Search System',
-  category:    'designs',
-  tags:        ['elasticsearch', 'inverted-index', 'tf-idf', 'bm25', 'sharding', 'tokenization', 'relevance-ranking'],
-  description: 'Design a full-text search system (like Elasticsearch or Solr) that indexes a large, constantly-updated document collection and answers free-text queries ranked by relevance within milliseconds. This is a different problem from prefix autocomplete: the query is arbitrary text, matches can be partial and fuzzy, and results must be ranked by relevance rather than simple popularity.',
+  ...meta,
   metaphor:    "A book's back-of-the-book index, but built and searched at library scale. Instead of scanning every page of every book (a full table scan) to find a word, the index tells you exactly which books and pages mention it — and a good index also tells you how central that word is to each page, so the most relevant matches surface first. At library scale, no single index fits in one binder, so the index itself is split across many binders, and finding an answer means checking all of them and merging the results.",
-  path:        '/system-design/distributed-search',
   howItWorks: [
     'Inverted index: instead of storing documents and scanning them for a query term, the system stores, per term, the list of documents (a "posting list") containing it. Looking up "database" returns its posting list directly — O(matching documents), not O(all documents). This is the foundational data structure of every full-text search engine.',
     'Analysis pipeline: raw text is tokenized (split into words), lowercased, stemmed (running → run), and stripped of stop words (the, is, at) before being added to the index. The same analysis pipeline runs on incoming queries, so "Databases" in a query matches "database" in the index. Choices here (which stemmer, which stop-word list, language-specific tokenizers) directly shape recall.',

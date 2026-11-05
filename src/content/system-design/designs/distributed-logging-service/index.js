@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'distributed-logging-service',
-  type:        'design',
-  title:       'Design a Distributed Logging Service',
-  category:    'designs',
-  tags:        ['logging', 'elk-stack', 'log-aggregation', 'ingestion-pipeline', 'indexing', 'hot-warm-cold'],
-  description: 'Design the logging platform itself — the system behind ELK, Splunk, or Datadog Logs — that collects log lines from thousands of hosts and services, makes them searchable within seconds, and retains months of history at a cost that doesn\'t scale linearly with a company\'s log volume. This is the infrastructure practitioners rely on, built from the same building blocks (message queue, distributed search) covered elsewhere.',
+  ...meta,
   metaphor:    "A newsroom's wire service. Thousands of correspondents (hosts) each file dispatches (log lines) continuously. A wire service can't have every editor read every raw dispatch as it arrives — dispatches are queued, categorized, indexed by topic, and only the recent, high-traffic desk keeps everything instantly searchable; older dispatches move to the archive, still retrievable, just slower to pull.",
-  path:        '/system-design/distributed-logging-service',
   howItWorks: [
     'Collection agents: a lightweight shipper (Fluentd, Filebeat, Vector) runs on every host or as a sidecar, tailing log files or reading from stdout, and forwards lines with minimal processing — parsing and enrichment are deliberately kept out of the hot write path on the source host so a logging problem never becomes a production incident.',
     'Ingestion buffer: shippers write into a durable, partitioned queue (see distributed message queue) rather than directly into the search index. This absorbs bursts — a bad deploy that logs at 100x normal volume queues up instead of overwhelming the indexing tier — and decouples collection uptime from indexing uptime.',

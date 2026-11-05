@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'consistency-patterns',
-  type:        'concept',
-  title:       'Consistency Patterns',
-  category:    'reliability',
-  tags:        ['consistency', 'strong-consistency', 'eventual-consistency', 'weak-consistency', 'read-your-writes', 'monotonic-reads', 'causal-consistency'],
-  description: 'Consistency patterns describe the guarantees a distributed system makes about when a write becomes visible to subsequent readers. Strong consistency means every reader immediately sees the latest write from any node. Eventual consistency means all readers will converge to the same value given enough time. Most production systems use a model between these extremes, tuned to the specific feature\'s requirements.',
+  ...meta,
   metaphor:    "Updating your contact info in a large organization. Strong consistency: IT updates the global directory and every building's desk phone immediately shows your new number. Eventual consistency: IT updates the global directory, but each building syncs overnight — your colleagues in another office might reach the old number until tomorrow morning, but everyone eventually gets the right one. Read-your-writes: you always see your own update immediately, even if others don't yet.",
-  path:        '/system-design/consistency-patterns',
   howItWorks: [
     'Strong (linearizable) consistency: every read reflects the most recent completed write, regardless of which replica serves it. Requires coordination — the write must be confirmed by a quorum of nodes before being acknowledged. High confidence, higher latency. Used in configuration stores, distributed locks, financial balances.',
     'Weak consistency: after a write, there is no guarantee when (or if) subsequent reads will see it. The system makes a best-effort attempt with no timing commitment. Used in real-time gaming state, VoIP call data, and live video — scenarios where stale data expires immediately.',

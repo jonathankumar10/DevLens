@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Stack',
   category: 'stack',
-  path: '/algorithms/min-stack',
   description:
     'Design a stack that supports push, pop, top, and retrieving the minimum element — all in O(1) time.',
   metaphor:

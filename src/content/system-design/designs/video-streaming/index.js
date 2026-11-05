@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'video-streaming',
-  type:        'design',
-  title:       'Design a Video Streaming Service',
-  category:    'designs',
-  tags:        ['video-streaming', 'cdn', 'adaptive-bitrate', 'hls', 'dash', 'transcoding', 'object-storage', 'video-processing', 'upload', 'drm'],
-  description: 'Design a video streaming platform (like YouTube or Netflix) that allows users to upload videos and stream them to millions of concurrent viewers worldwide at adaptive quality. The core challenges are encoding uploaded videos into multiple resolutions, distributing content globally via CDN, and adapting stream quality to each viewer\'s bandwidth in real time.',
+  ...meta,
   metaphor:    "A global film distribution network. Filmmakers submit raw reels to a central lab (upload + transcoding pipeline). The lab produces copies at multiple qualities: IMAX, standard, and low-bandwidth. These copies are shipped to thousands of regional cinemas (CDN edge nodes) closest to where audiences live. When you watch, the cinema plays the quality that matches your theater's projector capacity — swapping up or down as conditions change.",
-  path:        '/system-design/video-streaming',
   howItWorks: [
     'Upload pipeline: users upload raw video to object storage (S3) directly via presigned URL — bypassing application servers to eliminate an upload bottleneck. The upload triggers a transcoding job via message queue. Resumable uploads (TUS protocol or S3 multipart) handle large files over unstable connections.',
     'Transcoding: a transcoding cluster (AWS MediaConvert, FFmpeg workers, or a dedicated service like Zencoder) converts the raw video into multiple resolutions (240p, 480p, 720p, 1080p, 4K) and bitrates. Audio tracks, subtitle streams, and thumbnail frames are extracted as separate assets. Output is segmented into 2–10 second chunks in HLS (.m3u8 + .ts) or MPEG-DASH format.',

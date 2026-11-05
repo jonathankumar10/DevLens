@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Stack',
   category: 'stack',
-  path: '/algorithms/baseball-game',
   description: 'Given a list of operations, calculate the total score of a baseball game. Operations: an integer (new score), "+" (sum of last two), "D" (double of last), "C" (cancel last). Return the total of all scores on record.',
   metaphor: 'Picture a stack of scorecards on a table. Each number places a new card on top. "D" reads the top card and doubles it onto a new card. "+" peeks at the top two, writes their sum on a new card. "C" crumples and discards the top card. At the end every card on the stack is tallied.',
   tags: ['stack'],

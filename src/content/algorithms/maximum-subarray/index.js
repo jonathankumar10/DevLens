@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: "Kadane's Algorithm",
   category: 'arrays-hashing',
-  path: '/algorithms/maximum-subarray',
   description: 'Given an integer array nums, find the contiguous subarray with the largest sum, and return its sum.',
   metaphor: 'A hiker carries a running total of the trail. Every step adds that step\'s value. The moment the running total drops below zero, it can only drag future sums down — so the hiker drops the baggage and starts a fresh window at the next step. The best total ever seen is the answer.',
   tags: ['array', 'dynamic-programming', 'kadane'],

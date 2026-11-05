@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Two Pointers',
   category: 'arrays-hashing',
-  path: '/algorithms/remove-element',
   description: 'Given an integer array nums and an integer val, remove all occurrences of val in-place. Return k — the count of elements not equal to val. The first k elements of nums must hold those values.',
   metaphor: 'We use two runners on a track: a reader (i) sprints ahead, and a writer (k) trails behind. Whenever the reader steps on a tile marked val they leap over it; otherwise they hand the tile to the writer and both advance one step.',
   tags: ['array', 'two-pointers', 'in-place'],

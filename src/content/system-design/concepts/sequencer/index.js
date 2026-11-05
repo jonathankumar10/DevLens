@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'sequencer',
-  type:        'concept',
-  title:       'Sequencer (Unique ID Generator)',
-  category:    'scalability',
-  tags:        ['unique-id', 'sequencer', 'snowflake', 'uuid', 'causality', 'distributed-systems'],
-  description: 'A sequencer generates unique, often ordered, IDs across a distributed system — for primary keys, event ordering, and idempotency tokens. A single auto-increment counter cannot scale past one machine, so distributed systems need a way to hand out IDs that are unique (and ideally roughly time-ordered) without every node coordinating on every request.',
+  ...meta,
   metaphor:    "A hotel with multiple check-in desks that still needs every room key to be unique. Instead of one clerk handing out every key (a bottleneck and single point of failure), each desk is pre-assigned its own block of key numbers, or stamps each key with its desk ID and a timestamp — so two desks issuing keys at the same instant never collide.",
-  path:        '/system-design/sequencer',
   howItWorks: [
     'UUID (v4): 128 random bits, generated locally with no coordination and effectively zero collision probability. Simplest option, but the value is unordered — using it as a B-tree primary key causes random-order inserts that hurt index locality and write performance.',
     'Database auto-increment: a single database sequence guarantees strictly ordered, gap-free IDs — but the sequence itself is a single point of contention. Ticket servers (a dedicated DB whose only job is issuing IDs) scale this pattern out, still ordered, still a shared dependency.',

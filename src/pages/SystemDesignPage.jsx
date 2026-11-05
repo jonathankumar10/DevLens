@@ -1,11 +1,12 @@
-import { Fragment, Suspense, useState, useEffect } from 'react'
+import { Fragment, Suspense, use, useState, useEffect } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TYPE_COLOR, TYPE_LABEL } from '../constants/systemDesignRegistry'
+import { TYPE_COLOR, TYPE_LABEL, loadSystemDesignItem } from '../constants/systemDesignRegistry'
 import { ROADMAP_ITEMS, ROADMAP_SIDEBAR_GROUPS, WHY_BY_ID } from '../constants/systemDesignRoadmap'
 import { NAV_SECTIONS } from '../constants/sections'
 import MockInterview from '../components/system-design/MockInterview'
 import DetailPageLayout from '../components/detail/DetailPageLayout'
+import DetailLoading from '../components/detail/DetailLoading'
 import { findWithNeighbors } from '../lib/findWithNeighbors'
 import { lazyGlob } from '../lib/lazyGlob'
 import { SectionLabel } from '../components/detail/Panels'
@@ -1464,10 +1465,6 @@ export default function SystemDesignPage() {
 
   if (!item) return <Navigate to="/system-design" replace />
 
-  const folder = `../content/system-design/${item.type}s/${item.id}`
-  const ConceptIllustration = CONCEPT_ILLUSTRATIONS[`${folder}/ConceptIllustration.jsx`]
-  const Diagram             = DIAGRAMS[`${folder}/Diagram.jsx`]
-
   return (
     <DetailPageLayout
       sidebarGroups={ROADMAP_SIDEBAR_GROUPS}
@@ -1482,6 +1479,25 @@ export default function SystemDesignPage() {
       prevItem={prevItem}
       nextItem={nextItem}
     >
+      <Suspense fallback={<DetailLoading />}>
+        <SystemDesignDetail meta={item} />
+      </Suspense>
+    </DetailPageLayout>
+  )
+}
+
+// The registry holds metadata only; the item's full content (index.js) is
+// loaded on demand, so this renders once it arrives while the sidebar and
+// breadcrumb render immediately.
+function SystemDesignDetail({ meta }) {
+  const item = use(loadSystemDesignItem(meta))
+
+  const folder = `../content/system-design/${item.type}s/${item.id}`
+  const ConceptIllustration = CONCEPT_ILLUSTRATIONS[`${folder}/ConceptIllustration.jsx`]
+  const Diagram             = DIAGRAMS[`${folder}/Diagram.jsx`]
+
+  return (
+    <>
       {/* Title + type badge */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">{item.title}</h1>
@@ -1640,7 +1656,6 @@ export default function SystemDesignPage() {
           ))}
         </div>
       )}
-
-    </DetailPageLayout>
+    </>
   )
 }

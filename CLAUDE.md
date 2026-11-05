@@ -15,9 +15,12 @@ No test suite.
 
 ```bash
 cd functions && npm install
-firebase deploy --only functions
+npm run functions:data             # regenerate functions/generated/*.json from the registries
+firebase deploy --only functions   # runs functions:data automatically (predeploy hook)
 firebase functions:secrets:set ANTHROPIC_API_KEY
 ```
+
+`functions/generated/catalog.json` (chatbot topic list) and `rubrics.json` (mock interview rubrics, keyed by design id) are built by `scripts/build-functions-data.mjs` — never edit them by hand. The interview client sends only `designId`; the rubric is looked up server-side.
 
 ## Routing
 
@@ -38,12 +41,12 @@ firebase functions:secrets:set ANTHROPIC_API_KEY
 
 | File | Exports | Content type |
 |---|---|---|
-| `algorithmRegistry.js` | `ALGORITHMS`, `DIFFICULTY_COLOR` | Imports `index.js` modules |
+| `algorithmRegistry.js` | `ALGORITHMS`, `DIFFICULTY_COLOR` | Imports `index.js` modules; derives `path` from `id` |
 | `patternsRegistry.js` | `PATTERNS`, `PATTERN_COLORS` | Inline, joins algorithms by `algorithmIds` |
-| `systemDesignRegistry.js` | `SYSTEM_DESIGN`, `TYPE_LABEL`, `TYPE_COLOR` | Imports `index.js` modules |
+| `systemDesignRegistry.js` | `SYSTEM_DESIGN`, `TYPE_LABEL`, `TYPE_COLOR`, `loadSystemDesignItem` | Imports each item's `meta.js` (metadata only) and derives `path`; `loadSystemDesignItem(item)` lazy-loads the full `index.js` |
 | `systemDesignRoadmap.js` | `ROADMAP_STAGES`, `DESIGN_TIERS`, `JOURNEY_STEPS`, `WHY_BY_ID`, `ROADMAP_ITEMS`, `ROADMAP_SIDEBAR_GROUPS` | Learning order + "why" for every SD item |
 | `oodRegistry.js` | `OOD_PATTERNS`, `OOD_QUESTIONS`, `OOD_ITEMS`, `OOD_COLORS`, `OOD_CATEGORY_LABELS` | Inline |
-| `aiRegistry.js` | `AI_ITEMS`, `AI_COLORS`, `AI_CATEGORY_LABELS`, `LIVE_CODING_AI_GUIDE` | Inline |
+| `aiRegistry.js` | `AI_ITEMS`, `AI_COLORS`, `AI_CATEGORY_LABELS`, `loadAiContent` | Index-level fields inline; `loadAiContent()` lazy-loads `content/ai/aiContent.js` (`AI_CONTENT`, `LIVE_CODING_AI_GUIDE`) |
 | `techStackRegistry.js` | `TECH_STACK_ITEMS`, `TECH_STACK_COLORS`, `TECH_STACK_CATEGORY_LABELS` | Inline |
 | `palette.js` | `PALETTE`, `DIFFICULTY_COLOR` | Shared color tokens; the `*_COLORS` exports above are aliases of `PALETTE` |
 
@@ -66,7 +69,7 @@ Tailwind classes in shared constants must be written out in full — never built
 ### Algorithm — `src/content/algorithms/<slug>/`
 
 `index.js` exports a plain object:
-- `id`, `title`, `difficulty`, `pattern`, `category`, `path`, `description`, `metaphor`, `tags`, `problemUrl`, `problemLabel`
+- `id`, `title`, `difficulty`, `pattern`, `category`, `description`, `metaphor`, `tags`, `problemUrl`, `problemLabel` (`path` is derived by the registry — don't add it)
 - `solution.approaches[]` — each: `id`, `label`, `complexity`, and per-language (`java`, `python`) `{ code, getHighlightLines(step) }`
 
 `steps.js` exports `build<Name>Steps(...)` → array of step objects, each must have a `type` field.
@@ -75,7 +78,9 @@ Tailwind classes in shared constants must be written out in full — never built
 
 ### System Design — `src/content/system-design/<concepts|designs>/<slug>/`
 
-`index.js` exports a plain object with `id`, `type` (concept | design), `category`, `title`, `tagline`, and concept-specific fields.
+`meta.js` exports the index-level fields: `id`, `type` (concept | design), `title`, `category`, `tags`, `description`. The registry imports only these, so index pages, the roadmap and the sidebar stay small.
+
+`index.js` does `import meta from './meta.js'` and exports `{ ...meta, metaphor, howItWorks, keyPoints, ... }` with the rest of the content (designs with a mock interview also set `interviewEnabled: true` plus the rubric fields). `SystemDesignPage` loads it on demand via `loadSystemDesignItem` + React `use()` inside a `<Suspense>`; `path` is derived — don't add it.
 
 `steps.js` exports a steps array used by the diagram animator.
 
@@ -87,13 +92,15 @@ Every SD item must also be placed in `systemDesignRoadmap.js` (a dev-only `conso
 
 `Animation.jsx` is lazy-loaded via `import.meta.glob` in `PatternPage.jsx`. Pattern metadata is inline in `patternsRegistry.js`.
 
-### AI topic — `aiRegistry.js` inline
+### AI topic — `aiRegistry.js` + `content/ai/aiContent.js`
+
+Each item is split in two: `AI_ITEMS` in `aiRegistry.js` holds only `id`, `category`, `title`, `color`, `tagline` (+ `duration` for live-coding) — what the index, sidebar and home page need. Everything else lives under the same id in `AI_CONTENT` in `src/content/ai/aiContent.js`, which `AIPage` loads on demand via `loadAiContent()` + React `use()`. Field lists below are the merged item.
 
 Concept items (`category`: history | ml | llms | workflows | agents | production): `id`, `category`, `title`, `color`, `tagline`, `description`, `howItWorks[]`, `keyPoints[]`, `interviewAngles[]`
 
 Live-coding items (`category: 'live-coding'`): `id`, `category`, `title`, `color`, `tagline`, `duration`, `description`, `core[]`, and additional interview-guide fields. Rendered by `LiveCodingDetail` component in `AIPage.jsx`.
 
-`LIVE_CODING_AI_GUIDE` is a standalone object with AI coding interview tips (keys: `claudeMd`, `planMode`, `prompting`, etc.) used in the live-coding detail view.
+`LIVE_CODING_AI_GUIDE` (in `aiContent.js`) is a standalone object with AI coding interview tips (keys: `claudeMd`, `planMode`, `prompting`, etc.) used in the live-coding detail view.
 
 `AIPage.jsx` lazy-loads `src/content/ai/*/Animation.jsx`. Key Takeaways always renders for concept items — right column when no animation, below the two-column grid when animation is present.
 

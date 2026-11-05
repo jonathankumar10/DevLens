@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'reshaded',
-  type:        'concept',
-  title:       'The RESHADED Framework',
-  category:    'framework',
-  tags:        ['reshaded', 'interview-framework', 'requirements', 'estimation', 'high-level-design', 'api-design', 'detailed-design', 'trade-offs', 'interview-strategy'],
-  description: 'A fixed eight-step checklist for running a system design interview end to end: Requirements, Estimation, Storage schema, High-level design, API design, Detailed design, Evaluate for bottlenecks, and Discuss trade-offs. The value isn\'t novelty — it\'s that following the same order every time means nothing gets skipped under interview pressure, and the interviewer always knows which phase you\'re in.',
+  ...meta,
   metaphor:    "A pilot's pre-flight checklist. A pilot doesn't improvise a new sequence for every flight — they run the same checklist whether it's a puddle-jumper or a 747, because the checklist is what prevents a skipped step from becoming a mid-air surprise. RESHADED is the same idea applied to a 45-minute design interview: the destination (URL shortener vs. Uber) changes, the checklist doesn't.",
-  path:        '/system-design/reshaded',
   howItWorks: [
     'R — Requirements: Before proposing anything, pin down what the system must do (functional) and how well it must do it (non-functional: availability, latency, consistency). Explicitly ask what\'s out of scope — an interviewer who says "handle payments" but doesn\'t mention refunds is telling you refunds are out of scope, not that you should guess. This maps directly to the `requirements: { functional, nonFunctional, scale, outOfScope }` block on every design in this app.',
     'E — Estimation: Convert the requirements into numbers — QPS (reads and writes separately), storage growth over 1–5 years, bandwidth, and cache size. These numbers are what justify every later decision: "we need a cache" is an opinion, "read QPS is 1000x write QPS so a 5 GB Redis cache absorbs 80% of reads" is an argument. Skipping this step is the single most common reason a design conversation goes in circles later.',

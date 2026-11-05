@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'abstractions-in-system-design',
-  type:        'concept',
-  title:       'Abstractions in System Design',
-  category:    'framework',
-  tags:        ['abstraction', 'interface', 'implementation', 'leaky-abstraction', 'libraries', 'frameworks', 'transactions', 'cloud-abstraction', 'network-abstraction', 'consistency-abstraction', 'failure-abstraction'],
-  description: 'Abstraction is the technique of hiding complex details to focus on core goals. It manages the complexity of distributed systems by separating high-level design decisions from infrastructure concerns — letting teams build and scale applications without dealing with low-level details at every step. Naming an abstraction correctly, and knowing where it leaks, is what makes a design conversation move fast instead of getting stuck relitigating fundamentals.',
+  ...meta,
   metaphor:    "A car. From the curb, it's just \"a car\" — you recognize it, you could drive it, you can talk about it as a category without ever popping the hood. Open the hood, though, and you're staring at this exact engine's pistons, crankshaft, timing belt, and alternator — precisely machined, specific to this one vehicle. Study one piston's exact part number and tolerance closely enough, and you've lost the ability to talk about \"a car\" at all — you're now talking about one specific part of one specific engine. That trade-off — interface vs. internals — is the entire idea of abstraction, and the interactive diagram below walks through it directly. (The same idea shows up in Grokking's own illustration: picture \"a bird\" and you reason about the general category — flies, has feathers — not one sparrow's exact feather pattern.)",
-  path:        '/system-design/abstractions-in-system-design',
   howItWorks: [
     'An abstraction is an interface (the promise) plus a hidden implementation (how the promise is kept) — "an at-least-once, ordered-per-partition queue" is a real abstraction; "a queue" is just a label. The cards below go deep on the specific abstractions system design leans on most; this section stays at the overview level.',
     'Abstractions leak when the hidden detail becomes impossible to ignore — a dropped TCP connection forces "did my write actually commit?" back into view. Every "Detailed Design" and "Evaluate" phase of RESHADED is really: find where your chosen abstraction leaks, and design for that leak explicitly, before the interviewer has to.',

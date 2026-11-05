@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'cap-theorem',
-  type:        'concept',
-  title:       'CAP Theorem',
-  category:    'reliability',
-  tags:        ['cap', 'consistency', 'availability', 'partition-tolerance', 'distributed-systems', 'cp', 'ap', 'pacelc'],
-  description: 'The CAP theorem states that a distributed system can simultaneously guarantee at most two of three properties: Consistency (every read reflects the most recent write), Availability (every request receives a non-error response), and Partition Tolerance (the system continues operating despite network partitions). Because network partitions are inevitable in any real distributed system, the practical choice is always CP vs AP — never CA.',
+  ...meta,
   metaphor:    "Three employees at a bank: one ensures every teller always shows the correct balance (Consistency), one ensures every customer gets served immediately even when the back office is unreachable (Availability), and one ensures the bank keeps operating even when internal phone lines go down (Partition Tolerance). You can fully staff any two, but the third always ends up short-handed during crises — because crises are exactly when you need all three.",
-  path:        '/system-design/cap-theorem',
   howItWorks: [
     'Partition Tolerance is mandatory in any real distributed system. Networks drop packets, routers fail, and data center links go down. A system that assumes it will never partition is not a distributed system — it is a single node with a prayer.',
     'When a partition occurs in a CP system, the system chooses consistency over availability. Nodes that cannot confirm they have the latest data refuse to serve requests, returning errors until the partition heals. Examples: ZooKeeper, etcd, HBase. Use for leader election, distributed locks, configuration stores.',

@@ -1,9 +1,10 @@
-import { Suspense } from 'react'
+import { Suspense, use } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { AI_ITEMS, AI_COLORS, AI_CATEGORY_LABELS, LIVE_CODING_AI_GUIDE } from '../constants/aiRegistry'
+import { AI_ITEMS, AI_COLORS, AI_CATEGORY_LABELS, loadAiContent } from '../constants/aiRegistry'
 import { NAV_SECTIONS } from '../constants/sections'
 import DetailPageLayout from '../components/detail/DetailPageLayout'
 import DetailHero from '../components/detail/DetailHero'
+import DetailLoading from '../components/detail/DetailLoading'
 import { InfoPanel, HeaderPanel, SectionLabel, NumberedList, BulletList, Badge } from '../components/detail/Panels'
 import { groupByCategory } from '../lib/groupByCategory'
 import { findWithNeighbors } from '../lib/findWithNeighbors'
@@ -39,6 +40,21 @@ export default function AIPage() {
       nextItem={nextItem}
       basePath={BASE_PATH}
     >
+      <Suspense fallback={<DetailLoading />}>
+        <AIDetailBody meta={item} palette={palette} />
+      </Suspense>
+    </DetailPageLayout>
+  )
+}
+
+// Long-form content is loaded on demand (see loadAiContent), so the hero and
+// body render once it arrives; the sidebar and breadcrumb render immediately.
+function AIDetailBody({ meta, palette }) {
+  const { AI_CONTENT, LIVE_CODING_AI_GUIDE } = use(loadAiContent())
+  const item = { ...meta, ...AI_CONTENT[meta.id] }
+
+  return (
+    <>
       <DetailHero
         title={item.title}
         tagline={item.tagline}
@@ -57,9 +73,9 @@ export default function AIPage() {
       />
 
       {item.category === 'live-coding'
-        ? <LiveCodingDetail item={item} palette={palette} />
+        ? <LiveCodingDetail item={item} palette={palette} guide={LIVE_CODING_AI_GUIDE} />
         : <ConceptDetail item={item} palette={palette} />}
-    </DetailPageLayout>
+    </>
   )
 }
 
@@ -113,7 +129,7 @@ function KeyTakeawaysPanel({ item, palette }) {
 
 // ── Live-coding interview ─────────────────────────────────────────────────────
 
-function LiveCodingDetail({ item, palette }) {
+function LiveCodingDetail({ item, palette, guide }) {
   const boldMarker = `font-bold ${palette.text}`
 
   return (
@@ -175,7 +191,7 @@ function LiveCodingDetail({ item, palette }) {
           {AI_TOOLS_GUIDE_SECTIONS.map(({ key, label }) => (
             <div key={key} className="p-5 space-y-3">
               <SectionLabel>{label}</SectionLabel>
-              <BulletList items={LIVE_CODING_AI_GUIDE[key]} markerClassName={palette.text} />
+              <BulletList items={guide[key]} markerClassName={palette.text} />
             </div>
           ))}
         </div>

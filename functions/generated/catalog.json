@@ -1,0 +1,812 @@
+[
+  {
+    "section": "Algorithms",
+    "items": [
+      {
+        "title": "Two Sum",
+        "path": "/algorithms/two-sum",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Breadth-First Search",
+        "path": "/algorithms/bfs",
+        "meta": "Medium · Graphs"
+      },
+      {
+        "title": "Tree Traversal",
+        "path": "/algorithms/tree-traversal",
+        "meta": "Medium · Trees"
+      },
+      {
+        "title": "Contains Duplicate",
+        "path": "/algorithms/contains-duplicate",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Max Consecutive Ones",
+        "path": "/algorithms/max-consecutive-ones",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Remove Element",
+        "path": "/algorithms/remove-element",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Replace Elements with Greatest Element on Right Side",
+        "path": "/algorithms/replace-elements",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Concatenation of Array",
+        "path": "/algorithms/concatenation-of-array",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Valid Palindrome",
+        "path": "/algorithms/valid-palindrome",
+        "meta": "Easy · Two Pointers"
+      },
+      {
+        "title": "Baseball Game",
+        "path": "/algorithms/baseball-game",
+        "meta": "Easy · Stack"
+      },
+      {
+        "title": "Valid Parentheses",
+        "path": "/algorithms/valid-parentheses",
+        "meta": "Easy · Stack"
+      },
+      {
+        "title": "Min Stack",
+        "path": "/algorithms/min-stack",
+        "meta": "Medium · Stack"
+      },
+      {
+        "title": "Search a 2D Matrix",
+        "path": "/algorithms/search-matrix",
+        "meta": "Medium · Binary Search"
+      },
+      {
+        "title": "Binary Search",
+        "path": "/algorithms/binary-search",
+        "meta": "Easy · Binary Search"
+      },
+      {
+        "title": "Guess Number Higher or Lower",
+        "path": "/algorithms/guess-number",
+        "meta": "Easy · Binary Search"
+      },
+      {
+        "title": "Reverse Linked List",
+        "path": "/algorithms/reverse-linked-list",
+        "meta": "Easy · Linked List"
+      },
+      {
+        "title": "Merge Two Sorted Lists",
+        "path": "/algorithms/merge-sorted-lists",
+        "meta": "Easy · Linked List"
+      },
+      {
+        "title": "Maximum Subarray",
+        "path": "/algorithms/maximum-subarray",
+        "meta": "Medium · Arrays & Hashing"
+      },
+      {
+        "title": "Valid Anagram",
+        "path": "/algorithms/valid-anagram",
+        "meta": "Easy · Arrays & Hashing"
+      },
+      {
+        "title": "Remove Duplicates from Sorted Array",
+        "path": "/algorithms/remove-duplicates",
+        "meta": "Easy · Two Pointers"
+      },
+      {
+        "title": "Move Zeroes",
+        "path": "/algorithms/move-zeroes",
+        "meta": "Easy · Two Pointers"
+      },
+      {
+        "title": "Two Sum II – Input Array Is Sorted",
+        "path": "/algorithms/two-sum-ii",
+        "meta": "Medium · Two Pointers"
+      },
+      {
+        "title": "Container With Most Water",
+        "path": "/algorithms/container-with-most-water",
+        "meta": "Medium · Two Pointers"
+      },
+      {
+        "title": "Find Smallest Letter Greater Than Target",
+        "path": "/algorithms/next-greatest-letter",
+        "meta": "Easy · Binary Search"
+      },
+      {
+        "title": "First Bad Version",
+        "path": "/algorithms/first-bad-version",
+        "meta": "Easy · Binary Search"
+      },
+      {
+        "title": "Find Minimum in Rotated Sorted Array",
+        "path": "/algorithms/find-min-rotated",
+        "meta": "Medium · Binary Search"
+      },
+      {
+        "title": "Search in Rotated Sorted Array",
+        "path": "/algorithms/search-rotated",
+        "meta": "Medium · Binary Search"
+      },
+      {
+        "title": "Koko Eating Bananas",
+        "path": "/algorithms/koko-eating-bananas",
+        "meta": "Medium · Binary Search"
+      },
+      {
+        "title": "Linked List Cycle",
+        "path": "/algorithms/linked-list-cycle",
+        "meta": "Easy · Linked List"
+      },
+      {
+        "title": "Remove Nth Node From End of List",
+        "path": "/algorithms/remove-nth-node",
+        "meta": "Medium · Linked List"
+      },
+      {
+        "title": "Reorder List",
+        "path": "/algorithms/reorder-list",
+        "meta": "Medium · Linked List"
+      },
+      {
+        "title": "Design Linked List",
+        "path": "/algorithms/design-linked-list",
+        "meta": "Medium · Linked List"
+      },
+      {
+        "title": "Maximum Depth of Binary Tree",
+        "path": "/algorithms/max-depth",
+        "meta": "Easy · Trees"
+      },
+      {
+        "title": "Invert Binary Tree",
+        "path": "/algorithms/invert-tree",
+        "meta": "Easy · Trees"
+      },
+      {
+        "title": "Clone Graph",
+        "path": "/algorithms/clone-graph",
+        "meta": "Medium · Graphs"
+      },
+      {
+        "title": "Climbing Stairs",
+        "path": "/algorithms/climbing-stairs",
+        "meta": "Easy · 1-D DP"
+      },
+      {
+        "title": "House Robber",
+        "path": "/algorithms/house-robber",
+        "meta": "Medium · 1-D DP"
+      }
+    ]
+  },
+  {
+    "section": "DSA Patterns",
+    "items": [
+      {
+        "title": "Arrays",
+        "path": "/patterns/arrays",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Hash Map",
+        "path": "/patterns/hash-map",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Two Pointers",
+        "path": "/patterns/two-pointers",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Stack",
+        "path": "/patterns/stack",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Binary Search",
+        "path": "/patterns/binary-search",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Linked List",
+        "path": "/patterns/linked-list",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Trees",
+        "path": "/patterns/trees",
+        "meta": "Pattern"
+      },
+      {
+        "title": "Graphs & BFS",
+        "path": "/patterns/graphs-bfs",
+        "meta": "Pattern"
+      }
+    ]
+  },
+  {
+    "section": "System Design",
+    "items": [
+      {
+        "title": "Networking Basics",
+        "path": "/system-design/networking-basics",
+        "meta": "Concept"
+      },
+      {
+        "title": "DNS Resolution",
+        "path": "/system-design/dns",
+        "meta": "Concept"
+      },
+      {
+        "title": "TCP and UDP",
+        "path": "/system-design/tcp-and-udp",
+        "meta": "Concept"
+      },
+      {
+        "title": "HTTP",
+        "path": "/system-design/http",
+        "meta": "Concept"
+      },
+      {
+        "title": "Computer Architecture",
+        "path": "/system-design/computer-architecture",
+        "meta": "Concept"
+      },
+      {
+        "title": "Application Architecture",
+        "path": "/system-design/application-architecture",
+        "meta": "Concept"
+      },
+      {
+        "title": "SQL",
+        "path": "/system-design/sql",
+        "meta": "Concept"
+      },
+      {
+        "title": "Database Indexes",
+        "path": "/system-design/database-indexes",
+        "meta": "Concept"
+      },
+      {
+        "title": "ACID vs BASE",
+        "path": "/system-design/acid-and-base",
+        "meta": "Concept"
+      },
+      {
+        "title": "Caching",
+        "path": "/system-design/caching",
+        "meta": "Concept"
+      },
+      {
+        "title": "Database Replication",
+        "path": "/system-design/database-replication",
+        "meta": "Concept"
+      },
+      {
+        "title": "Spectrum of Consistency Models",
+        "path": "/system-design/consistency-models-spectrum",
+        "meta": "Concept"
+      },
+      {
+        "title": "Consistency Patterns",
+        "path": "/system-design/consistency-patterns",
+        "meta": "Concept"
+      },
+      {
+        "title": "CAP Theorem",
+        "path": "/system-design/cap-theorem",
+        "meta": "Concept"
+      },
+      {
+        "title": "Database Sharding",
+        "path": "/system-design/database-sharding",
+        "meta": "Concept"
+      },
+      {
+        "title": "Consistent Hashing",
+        "path": "/system-design/consistent-hashing",
+        "meta": "Concept"
+      },
+      {
+        "title": "NoSQL Databases",
+        "path": "/system-design/nosql",
+        "meta": "Concept"
+      },
+      {
+        "title": "Object Storage",
+        "path": "/system-design/object-storage",
+        "meta": "Concept"
+      },
+      {
+        "title": "Proxies and Load Balancing",
+        "path": "/system-design/proxies-and-load-balancing",
+        "meta": "Concept"
+      },
+      {
+        "title": "CDNs",
+        "path": "/system-design/cdns",
+        "meta": "Concept"
+      },
+      {
+        "title": "Rate Limiting",
+        "path": "/system-design/rate-limiting",
+        "meta": "Concept"
+      },
+      {
+        "title": "Logging & Monitoring",
+        "path": "/system-design/logging-and-monitoring",
+        "meta": "Concept"
+      },
+      {
+        "title": "Spectrum of Failure Models",
+        "path": "/system-design/failure-models-spectrum",
+        "meta": "Concept"
+      },
+      {
+        "title": "Availability Patterns",
+        "path": "/system-design/availability-patterns",
+        "meta": "Concept"
+      },
+      {
+        "title": "Message Queues",
+        "path": "/system-design/message-queues",
+        "meta": "Concept"
+      },
+      {
+        "title": "Event-Driven Architecture",
+        "path": "/system-design/event-driven-architecture",
+        "meta": "Concept"
+      },
+      {
+        "title": "Microservices",
+        "path": "/system-design/microservices",
+        "meta": "Concept"
+      },
+      {
+        "title": "Network Abstractions: RPC",
+        "path": "/system-design/rpc",
+        "meta": "Concept"
+      },
+      {
+        "title": "API Paradigms",
+        "path": "/system-design/api-paradigms",
+        "meta": "Concept"
+      },
+      {
+        "title": "API Design",
+        "path": "/system-design/api-design",
+        "meta": "Concept"
+      },
+      {
+        "title": "WebSockets",
+        "path": "/system-design/websockets",
+        "meta": "Concept"
+      },
+      {
+        "title": "Distributed Tracing",
+        "path": "/system-design/distributed-tracing",
+        "meta": "Concept"
+      },
+      {
+        "title": "Sequencer (Unique ID Generator)",
+        "path": "/system-design/sequencer",
+        "meta": "Concept"
+      },
+      {
+        "title": "Design Requirements",
+        "path": "/system-design/design-requirements",
+        "meta": "Concept"
+      },
+      {
+        "title": "The RESHADED Framework",
+        "path": "/system-design/reshaded",
+        "meta": "Concept"
+      },
+      {
+        "title": "Abstractions in System Design",
+        "path": "/system-design/abstractions-in-system-design",
+        "meta": "Concept"
+      },
+      {
+        "title": "Introduction to Building Blocks for Modern System Design",
+        "path": "/system-design/building-blocks-overview",
+        "meta": "Concept"
+      },
+      {
+        "title": "Design a URL Shortener",
+        "path": "/system-design/url-shortener",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Rate Limiter",
+        "path": "/system-design/rate-limiter",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Notification System",
+        "path": "/system-design/notification-system",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Chat System",
+        "path": "/system-design/chat-system",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a File Storage Service",
+        "path": "/system-design/file-storage",
+        "meta": "Design"
+      },
+      {
+        "title": "Design Search Autocomplete",
+        "path": "/system-design/search-autocomplete",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Social Media Feed",
+        "path": "/system-design/social-media-feed",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Video Streaming Service",
+        "path": "/system-design/video-streaming",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Server-Side Error Monitoring System",
+        "path": "/system-design/error-monitoring-system",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Client-Side Error Monitoring System",
+        "path": "/system-design/client-side-error-monitoring",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Key-Value Store",
+        "path": "/system-design/key-value-store",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Distributed Cache",
+        "path": "/system-design/distributed-cache",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Distributed Messaging Queue",
+        "path": "/system-design/distributed-message-queue",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Pub-Sub System",
+        "path": "/system-design/pub-sub",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Blob Store",
+        "path": "/system-design/blob-store",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Distributed Search System",
+        "path": "/system-design/distributed-search",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Distributed Logging Service",
+        "path": "/system-design/distributed-logging-service",
+        "meta": "Design"
+      },
+      {
+        "title": "Design a Distributed Task Scheduler",
+        "path": "/system-design/distributed-task-scheduler",
+        "meta": "Design"
+      },
+      {
+        "title": "Design Sharded Counters",
+        "path": "/system-design/sharded-counters",
+        "meta": "Design"
+      }
+    ]
+  },
+  {
+    "section": "Object-Oriented Design",
+    "items": [
+      {
+        "title": "Singleton",
+        "path": "/ood/singleton",
+        "meta": "Creational"
+      },
+      {
+        "title": "Factory Method",
+        "path": "/ood/factory-method",
+        "meta": "Creational"
+      },
+      {
+        "title": "Builder",
+        "path": "/ood/builder",
+        "meta": "Creational"
+      },
+      {
+        "title": "Adapter",
+        "path": "/ood/adapter",
+        "meta": "Structural"
+      },
+      {
+        "title": "Decorator",
+        "path": "/ood/decorator",
+        "meta": "Structural"
+      },
+      {
+        "title": "Facade",
+        "path": "/ood/facade",
+        "meta": "Structural"
+      },
+      {
+        "title": "Strategy",
+        "path": "/ood/strategy",
+        "meta": "Behavioral"
+      },
+      {
+        "title": "Observer",
+        "path": "/ood/observer",
+        "meta": "Behavioral"
+      },
+      {
+        "title": "State",
+        "path": "/ood/state",
+        "meta": "Behavioral"
+      },
+      {
+        "title": "Command",
+        "path": "/ood/command",
+        "meta": "Behavioral"
+      },
+      {
+        "title": "Template Method",
+        "path": "/ood/template-method",
+        "meta": "Behavioral"
+      },
+      {
+        "title": "Design a Parking Lot",
+        "path": "/ood/design-parking-lot",
+        "meta": "Interview Question"
+      },
+      {
+        "title": "Design an ATM",
+        "path": "/ood/design-atm",
+        "meta": "Interview Question"
+      },
+      {
+        "title": "Design a Library System",
+        "path": "/ood/design-library",
+        "meta": "Interview Question"
+      },
+      {
+        "title": "Design a Coffee Vending Machine",
+        "path": "/ood/design-vending-machine",
+        "meta": "Interview Question"
+      },
+      {
+        "title": "Design an Online Bookstore",
+        "path": "/ood/design-bookstore",
+        "meta": "Interview Question"
+      },
+      {
+        "title": "Design a Restaurant Order System",
+        "path": "/ood/design-restaurant",
+        "meta": "Interview Question"
+      }
+    ]
+  },
+  {
+    "section": "AI Engineering",
+    "items": [
+      {
+        "title": "The History of AI",
+        "path": "/ai/ai-history",
+        "meta": "History & Foundations"
+      },
+      {
+        "title": "Neural Networks",
+        "path": "/ai/neural-networks",
+        "meta": "Core ML"
+      },
+      {
+        "title": "Training & Loss",
+        "path": "/ai/training-and-loss",
+        "meta": "Core ML"
+      },
+      {
+        "title": "The Transformer",
+        "path": "/ai/transformer-architecture",
+        "meta": "LLMs & Transformers"
+      },
+      {
+        "title": "The Attention Mechanism",
+        "path": "/ai/attention-mechanism",
+        "meta": "LLMs & Transformers"
+      },
+      {
+        "title": "Tokenization",
+        "path": "/ai/tokenization",
+        "meta": "LLMs & Transformers"
+      },
+      {
+        "title": "Context Windows",
+        "path": "/ai/context-windows",
+        "meta": "LLMs & Transformers"
+      },
+      {
+        "title": "LLM Inference & Sampling",
+        "path": "/ai/llm-inference",
+        "meta": "LLMs & Transformers"
+      },
+      {
+        "title": "Multimodal Models",
+        "path": "/ai/multimodal-models",
+        "meta": "LLMs & Transformers"
+      },
+      {
+        "title": "Prompt Engineering",
+        "path": "/ai/prompt-engineering",
+        "meta": "AI Workflows"
+      },
+      {
+        "title": "Retrieval-Augmented Generation",
+        "path": "/ai/rag",
+        "meta": "AI Workflows"
+      },
+      {
+        "title": "Embeddings & Vector Search",
+        "path": "/ai/embeddings",
+        "meta": "AI Workflows"
+      },
+      {
+        "title": "Function Calling & Tool Use",
+        "path": "/ai/function-calling",
+        "meta": "AI Workflows"
+      },
+      {
+        "title": "Fine-Tuning",
+        "path": "/ai/fine-tuning",
+        "meta": "AI Workflows"
+      },
+      {
+        "title": "Hallucinations & Guardrails",
+        "path": "/ai/guardrails",
+        "meta": "AI Workflows"
+      },
+      {
+        "title": "AI Agents",
+        "path": "/ai/ai-agents",
+        "meta": "AI Agents"
+      },
+      {
+        "title": "Multi-Agent Systems",
+        "path": "/ai/multi-agent-systems",
+        "meta": "AI Agents"
+      },
+      {
+        "title": "The AI Engineer",
+        "path": "/ai/ai-engineer",
+        "meta": "Production & Evaluation"
+      },
+      {
+        "title": "LLM Evaluation",
+        "path": "/ai/llm-evaluation",
+        "meta": "Production & Evaluation"
+      },
+      {
+        "title": "AI Observability",
+        "path": "/ai/ai-observability",
+        "meta": "Production & Evaluation"
+      },
+      {
+        "title": "AI Chat App",
+        "path": "/ai/ai-chat-app",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Knowledge Base Q&A",
+        "path": "/ai/knowledge-base-qa",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Document Search App",
+        "path": "/ai/document-search-app",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Support Ticket Assistant",
+        "path": "/ai/support-ticket-assistant",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Task Manager with AI Planning",
+        "path": "/ai/task-manager-ai",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Kanban Board with AI Triage",
+        "path": "/ai/kanban-board-ai",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Meeting Notes Summarizer",
+        "path": "/ai/meeting-notes-summarizer",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Bookmark Research Assistant",
+        "path": "/ai/bookmark-research-assistant",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Expense Insight App",
+        "path": "/ai/expense-insight-app",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Inventory Assistant",
+        "path": "/ai/inventory-assistant",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "API Usage Dashboard",
+        "path": "/ai/api-usage-dashboard",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Notification Center",
+        "path": "/ai/notification-center",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "Habit Coach",
+        "path": "/ai/habit-coach",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "URL Monitor / Shortener",
+        "path": "/ai/url-monitor-shortener",
+        "meta": "Live Coding Interviews"
+      },
+      {
+        "title": "File Metadata Explorer",
+        "path": "/ai/file-metadata-explorer",
+        "meta": "Live Coding Interviews"
+      }
+    ]
+  },
+  {
+    "section": "Tech Stack",
+    "items": [
+      {
+        "title": "React",
+        "path": "/tech-stack/react",
+        "meta": "Frontend"
+      },
+      {
+        "title": "Firebase Cloud Functions",
+        "path": "/tech-stack/firebase-functions",
+        "meta": "Backend"
+      },
+      {
+        "title": "Vite",
+        "path": "/tech-stack/vite",
+        "meta": "Tooling"
+      }
+    ]
+  }
+]

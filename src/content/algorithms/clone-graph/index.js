@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Graph BFS + Hash Map',
   category: 'graphs',
-  path: '/algorithms/clone-graph',
   description: 'Given a reference to a node in a connected undirected graph, return a deep copy (clone) of the graph. Each node has a value and a list of its neighbors.',
   metaphor: 'A photocopier with a ledger. The ledger maps every original node to its copy, so nothing is ever copied twice. BFS walks the original graph: each time it meets a neighbor with no ledger entry, it makes a copy and queues the original for later. Either way, it wires the current copy to the neighbor\'s copy.',
   tags: ['graph', 'bfs', 'hash-map'],

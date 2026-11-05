@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'consistency-models-spectrum',
-  type:        'concept',
-  title:       'Spectrum of Consistency Models',
-  category:    'framework',
-  tags:        ['consistency', 'linearizability', 'sequential-consistency', 'causal-consistency', 'eventual-consistency', 'cap-theorem', 'distributed-systems', 'consistency-spectrum'],
-  description: 'A ladder of consistency guarantees, from strongest (linearizability — behaves like there\'s only ever one copy of the data, with real-time recency) to weakest (eventual — replicas converge with no timing promise at all). Climbing the ladder buys stronger guarantees but costs latency and availability, especially under network partition. Picking the right rung for a given read path — not just "strong" or "eventual" as a binary — is one of the most consequential trade-offs in distributed systems.',
+  ...meta,
   metaphor:    "Four ways a group of friends share a running shopping list. Linearizable: everyone must call one phone number and speak to the single person holding the master list before adding anything — slow, but nobody ever sees a stale list, and the order matches real time exactly. Sequential: everyone agrees on one shared order of edits that respects each person's own sequence, like passing a physical notebook around — consistent, but not tied to wall-clock time. Causal: you only need to see the edits that causally came before yours (someone's reply to your addition); unrelated edits from other friends can arrive in any order. Eventual: everyone scribbles on their own copy and compares notes later — it all matches up eventually, but for a while your list and mine might disagree.",
-  path:        '/system-design/consistency-models-spectrum',
   howItWorks: [
     'Linearizability (strong consistency): the system behaves as if there were exactly one copy of the data and every operation took effect atomically at some instant between its start and end, matching real (wall-clock) time. If write W finishes before read R begins, R must see W\'s result — no exceptions, regardless of which replica serves R. This is the strongest, most intuitive guarantee, and the most expensive: it requires coordinating a quorum of replicas on every write (and often every read), which adds latency and — per the CAP theorem — becomes impossible to guarantee during a network partition without sacrificing availability.',
     'Sequential consistency: weaker than linearizability in one specific way — it drops the real-time requirement. All operations still appear to execute in some single global order, and that order still respects each individual process\'s own program order, but the global order doesn\'t have to match wall-clock time. Concretely: if you and I each make a write, an observer must see them in *some* consistent order, but that order doesn\'t have to be "whoever\'s write actually finished first in real time." This relaxation is what makes sequential consistency cheaper to implement than linearizability while still being strong enough for many coordination problems.',

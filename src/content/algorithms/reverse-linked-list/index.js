@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Linked List',
   category: 'linked-list',
-  path: '/algorithms/reverse-linked-list',
   description:
     'Reverse a singly linked list in-place and return the new head.',
   metaphor:

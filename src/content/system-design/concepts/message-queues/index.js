@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'message-queues',
-  type:        'concept',
-  title:       'Message Queues',
-  category:    'messaging',
-  tags:        ['message-queue', 'kafka', 'rabbitmq', 'sqs', 'pub-sub', 'async', 'producer', 'consumer', 'event-streaming', 'dead-letter-queue', 'backpressure'],
-  description: 'Message queues decouple producers (services that generate work) from consumers (services that process it) by placing an intermediary buffer between them. Instead of Service A calling Service B synchronously and waiting for a response, A publishes a message to a queue and returns immediately. B reads from the queue at its own pace. This enables asynchrony, load leveling across traffic spikes, and fault isolation between services.',
+  ...meta,
   metaphor:    "A restaurant order rail. The waiter (producer) clips your ticket to the pass-through rail (queue) and immediately returns to seat the next table. The kitchen (consumer) picks up tickets in order and cooks at its own pace. The waiter doesn't stand at the rail waiting — and the kitchen doesn't get overwhelmed by all customers arriving at once. If the kitchen falls behind, tickets pile up on the rail rather than customers being turned away.",
-  path:        '/system-design/message-queues',
   howItWorks: [
     'Producers publish messages to a named topic or queue. Each message contains a payload (the work to do) and optional metadata — priority, timestamp, correlation ID, trace ID. The producer does not wait for the work to be processed.',
     'Consumers subscribe to a topic or poll the queue at their own rate. Each message is delivered at least once — the consumer must explicitly acknowledge receipt before the queue removes the message. If the consumer crashes before acknowledging, the message is redelivered.',

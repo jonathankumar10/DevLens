@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'application-architecture',
-  type:        'concept',
-  title:       'Application Architecture',
-  category:    'architecture',
-  tags:        ['architecture', 'client-server', 'frontend', 'cicd', 'load-balancer', 'cache', 'stateless', 'scalability'],
-  description: 'How a production web application is structured — from the code a developer writes to the response a user receives. Every layer has a single job, and understanding each one tells you exactly where to look when things go wrong.',
+  ...meta,
   metaphor:    "A restaurant: the menu and decor are the frontend, the kitchen is the server, the pantry is the database, the pass-through window is the load balancer, the prep station reusing yesterday's sauces is the cache, and the health inspector watching everything is monitoring.",
-  path:        '/system-design/application-architecture',
   howItWorks: [
     'A developer writes code and pushes it to a shared repository — every change is tracked and can be rolled back.',
     'The push triggers a CI/CD pipeline that builds the code, runs tests, and deploys automatically if everything passes.',

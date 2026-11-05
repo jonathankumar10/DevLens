@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Fast & Slow Pointers',
   category: 'linked-list',
-  path: '/algorithms/reorder-list',
   description: 'Given the head of a singly linked list L0 → L1 → … → Ln, reorder it in-place to L0 → Ln → L1 → Ln-1 → L2 → Ln-2 → …. Only node links may change, not node values.',
   metaphor: 'Three classic moves chained together. First, fast/slow pointers find the middle. Second, the back half is reversed so its tail is now in front. Third, the two halves are zipped together like a shuffle of two card piles — one from the front, one from the back, alternating.',
   tags: ['linked-list', 'two-pointers', 'reversal'],

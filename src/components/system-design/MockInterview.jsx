@@ -18,11 +18,6 @@ const ERROR_TEXT = {
 
 const TERMINAL_ERRORS = new Set(['RATE_LIMITED', 'SESSION_TURN_LIMIT', 'INVALID_MESSAGES', 'INVALID_UID'])
 
-function buildRubric(design) {
-  const { title, description, requirements, dataModel, apiDesign, hldFlows, deepDive, levelExpectations, keyPoints } = design
-  return { title, description, requirements, dataModel, apiDesign, hldFlows, deepDive, levelExpectations, keyPoints }
-}
-
 export default function MockInterview({ design }) {
   const [started, setStarted]   = useState(false)
   const [messages, setMessages] = useState([])
@@ -33,7 +28,6 @@ export default function MockInterview({ design }) {
 
   const sessionId = useRef(null)
   const uid       = useRef(getUserId())
-  const rubric    = useRef(null)
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -48,7 +42,7 @@ export default function MockInterview({ design }) {
       const { data } = await callInterviewChat({
         uid:       uid.current,
         sessionId: sessionId.current,
-        rubric:    rubric.current,
+        designId:  design.id,
         messages:  nextMessages,
         endRequested,
       })
@@ -69,7 +63,6 @@ export default function MockInterview({ design }) {
 
   function handleStart() {
     sessionId.current = crypto.randomUUID()
-    rubric.current = buildRubric(design)
     setStarted(true)
     setMessages([])
     setEnded(false)

@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'distributed-message-queue',
-  type:        'design',
-  title:       'Design a Distributed Messaging Queue',
-  category:    'designs',
-  tags:        ['kafka', 'message-queue', 'partitioning', 'replication', 'consumer-offset', 'log-structured', 'isr'],
-  description: 'Design the message queue itself — a system like Kafka or SQS — rather than just using one. The core requirements: durable storage that survives broker crashes, throughput that scales past a single machine, ordering guarantees within a defined scope, and delivery semantics producers and consumers can rely on.',
+  ...meta,
   metaphor:    "A single message queue is one ledger book. A distributed one is a shelf of ledger books (partitions), each mirrored by a scribe in another room (replicas) who copies every entry in the same order as it's written. Readers can each track their own bookmark (consumer offset) independently, so ten different readers can be at ten different pages of the same book without interfering with each other.",
-  path:        '/system-design/distributed-message-queue',
   howItWorks: [
     'Partitioned log storage: a topic is split into partitions, each an append-only, immutable log on disk. A message is assigned to a partition by a partition key (hashed) or round-robin. Sequential disk writes make this fast even without an in-memory buffer, and splitting across partitions is what lets throughput scale past one machine.',
     'Ordering scope: strict ordering is guaranteed only within a single partition, not across the whole topic. Messages that must stay ordered relative to each other (e.g., all events for one user) need the same partition key, so they land in the same partition and are read in write order.',

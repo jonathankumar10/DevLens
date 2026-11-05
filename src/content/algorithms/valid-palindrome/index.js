@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Two Pointers',
   category: 'two-pointers',
-  path: '/algorithms/valid-palindrome',
   description: 'Given a string, determine if it is a palindrome after converting all uppercase letters to lowercase and removing all non-alphanumeric characters.',
   metaphor: 'Two readers start at opposite ends of the string and walk toward each other. Anyone who lands on punctuation or whitespace steps past it without saying a word. When both land on a letter or digit, they compare — a mismatch ends the story immediately; a match lets them both step inward.',
   tags: ['two-pointers', 'string'],

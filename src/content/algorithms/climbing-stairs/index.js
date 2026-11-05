@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: '1-D Dynamic Programming',
   category: '1d-dp',
-  path: '/algorithms/climbing-stairs',
   description: 'You are climbing a staircase with n steps. Each time you can climb 1 or 2 steps. In how many distinct ways can you reach the top?',
   metaphor: 'To stand on stair i, your last move came either from stair i−1 (a 1-step) or stair i−2 (a 2-step). So the ways to reach i are the ways to reach i−1 plus the ways to reach i−2 — the Fibonacci sequence. We only ever need the last two answers, so two variables walk up the staircase together.',
   tags: ['dynamic-programming', 'fibonacci', 'math'],

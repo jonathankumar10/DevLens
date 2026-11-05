@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'rpc',
-  type:        'concept',
-  title:       'Network Abstractions: RPC',
-  category:    'framework',
-  tags:        ['rpc', 'remote-procedure-call', 'stub', 'marshalling', 'idempotency', 'partial-failure', 'sync-vs-async', 'grpc'],
-  description: 'Remote Procedure Call is the abstraction that lets you write `result = getUser(id)` and have it execute on a machine you\'ve never touched, as if it were a local function call. The abstraction is powerful and also fundamentally leaky: a local call can\'t silently fail halfway through, but a network call always can. Everything interesting about RPC as a concept is about that one difference.',
+  ...meta,
   metaphor:    "Mailing a form to a government office instead of handing it to a clerk across the counter. In person, you know instantly whether your form was received and processed. By mail, if you don't hear back, you genuinely can't tell whether the letter got lost, whether it arrived but sat in a backlog, or whether it was processed and the reply got lost on the way back to you. RPC is the mail-in form: it looks like handing someone a form, but it inherits every uncertainty of the postal system in between.",
-  path:        '/system-design/rpc',
   howItWorks: [
     'The core idea: a client stub presents a normal-looking function signature. Calling it marshals the arguments (serializes them into bytes), sends them over the network, and on the server side a skeleton unmarshals the bytes, invokes the real function, and marshals the result back. From the calling code\'s point of view, `getUser(id)` looks identical whether `id` lives in the next stack frame or on a server three data centers away — that\'s the entire point of the abstraction.',
     'The abstraction leaks precisely at failure. A local function call has exactly two outcomes: it returns, or it throws/crashes the whole process — there\'s no in-between. A remote call has a third outcome a local call can never have: the request or the response gets lost in transit, and the caller times out with genuinely no way to know whether the callee ever ran. This is not a minor edge case — it\'s the single fact that makes distributed systems categorically harder than single-process programming, and it\'s why "detailed design" for almost any RPC-based system spends real time on this exact question.',

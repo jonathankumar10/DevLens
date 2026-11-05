@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Two Pointers',
   category: 'two-pointers',
-  path: '/algorithms/container-with-most-water',
   description: 'Given n vertical lines where line i has height heights[i], find two lines that, together with the x-axis, form a container holding the most water. Return that maximum amount of water.',
   metaphor: 'Start with the widest possible container — the two outermost walls. Water level is capped by the shorter wall, so moving the taller wall inward can never help: width shrinks and the cap stays. The only hope for more water is to replace the shorter wall, so that\'s the pointer we move.',
   tags: ['two-pointers', 'array', 'greedy'],

@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'blob-store',
-  type:        'design',
-  title:       'Design a Blob Store',
-  category:    'designs',
-  tags:        ['blob-store', 's3', 'erasure-coding', 'replication', 'metadata-service', 'chunking', 'durability'],
-  description: 'Design the storage system itself — something like S3 or GCS — that object-storage clients build on top of. The interview problem is different from using a blob store: it is durably storing exabytes of arbitrary-sized binary data across a fleet of disks that fail regularly, while serving both tiny objects and multi-terabyte files efficiently.',
+  ...meta,
   metaphor:    "A shipping company's internal warehouse network, not the tracking website customers use. Customers just see a tracking number (an object key); internally, a large shipment (a big object) is split into pallets (chunks) spread across multiple warehouses (storage nodes) for safety, a separate dispatch office (metadata service) records which warehouses hold which pallets, and damaged pallets are silently reconstructed from backup copies or parity pallets before anyone notices.",
-  path:        '/system-design/blob-store',
   howItWorks: [
     'Two-tier architecture: a metadata service tracks, for every object key, which physical chunks make it up and which storage nodes hold each chunk — this lives in a fast, strongly consistent database (or a sharded key-value store) since it\'s small relative to the actual bytes. A separate data service on commodity storage nodes holds the actual chunk bytes and knows nothing about object keys or buckets.',
     'Chunking: large objects are split into fixed-size chunks (e.g., 64–128 MB) before being written, both to bound the blast radius of a single node failure and to allow chunks of one object to be spread and even uploaded in parallel across many storage nodes. Small objects may be packed together into a single chunk to avoid per-object storage overhead.',

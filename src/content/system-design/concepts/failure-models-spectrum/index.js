@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'failure-models-spectrum',
-  type:        'concept',
-  title:       'Spectrum of Failure Models',
-  category:    'framework',
-  tags:        ['failure-model', 'fail-stop', 'crash-recovery', 'omission-failure', 'byzantine-failure', 'fault-tolerance', 'distributed-systems', 'consensus'],
-  description: 'A taxonomy of the ways a component can actually fail, from easiest to detect and handle (fail-stop — it crashes and stays down) to hardest (Byzantine — it keeps running and reports results, but some of them are wrong or malicious). The failure model you assume determines how much redundancy and coordination machinery your design actually needs: assuming Byzantine failures when the interview expects fail-stop wastes time building consensus nobody asked for; assuming fail-stop when the requirements imply otherwise misses a real correctness gap.',
+  ...meta,
   metaphor:    "Four ways a coworker can let a team down. Fail-stop: they call in sick and stay out — the absence is obvious, so you just reassign their work. Crash-recovery: they vanish mid-task with no notice, then reappear later still holding half-finished, possibly stale work that has to be reconciled with whatever happened while they were gone. Omission: they show up and seem fine, but silently drop half their assigned tasks without ever saying anything went wrong. Byzantine: they show up, report every task as done — and some of that work is subtly wrong or actively misleading. That last case is the worst, because you can no longer even trust their own status reports.",
-  path:        '/system-design/failure-models-spectrum',
   howItWorks: [
     'Fail-stop: a component crashes and stays down — permanently, or until an operator intervenes. Critically, the failure is cleanly detectable: other nodes can tell it\'s gone (it stops responding to health checks entirely) and route around it with confidence. This is the easiest failure model to design for, because "detect, then failover" is the entire strategy — there\'s no ambiguity about whether the failed node might still be doing something.',
     'Crash-recovery: a component crashes, but may come back later — possibly having lost in-memory state, possibly having missed writes that happened while it was down, possibly rejoining with stale data. This is harder than fail-stop because the system must handle the node\'s *return*, not just its absence: does it need to catch up from a replication log before serving traffic again? Could it have partially applied a write before crashing, leaving inconsistent state on disk? Most real hardware and process crashes are crash-recovery, not fail-stop — a rebooted server rejoins the cluster, it doesn\'t stay gone forever.',

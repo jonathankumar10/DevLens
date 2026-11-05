@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Fast & Slow Pointers',
   category: 'linked-list',
-  path: '/algorithms/linked-list-cycle',
   description: 'Given the head of a linked list, determine whether the list contains a cycle — some node that can be reached again by continuously following next pointers. Return true if there is a cycle, otherwise false.',
   metaphor: 'A tortoise and a hare race down the list — the hare takes two steps for every one the tortoise takes. On a straight track the hare simply runs off the end. On a loop track the hare laps around and, since it gains one node per turn, it must eventually land on the tortoise.',
   tags: ['linked-list', 'two-pointers', 'floyd'],

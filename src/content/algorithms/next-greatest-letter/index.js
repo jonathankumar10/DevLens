@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Binary Search',
   category: 'binary-search',
-  path: '/algorithms/next-greatest-letter',
   description: 'Given a sorted array of characters letters and a character target, return the smallest character in letters that is lexicographically greater than target. If no such character exists, wrap around and return letters[0].',
   metaphor: 'We hunt for the boundary between "≤ target" and "> target". Every midpoint that is too small pushes left past it; every midpoint that is big enough becomes a candidate and pulls right in. When the window collapses, left sits exactly on the first letter past the boundary — or falls off the end, which means wrap around.',
   tags: ['binary-search', 'array'],

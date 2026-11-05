@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'chat-system',
-  type:        'design',
-  title:       'Design a Chat System',
-  category:    'designs',
-  tags:        ['chat', 'websocket', 'real-time', 'message-storage', 'presence', 'fanout', 'pub-sub', 'unread-count', 'message-ordering', 'end-to-end-encryption'],
-  description: 'Design a real-time chat system (like Slack or WhatsApp) supporting one-on-one and group messaging with message persistence, online presence, and push notifications for offline users. The core technical challenges are maintaining persistent bidirectional connections at scale, ordering messages consistently, and delivering messages reliably across both live connections and offline fallback.',
+  ...meta,
   metaphor:    "A massive switchboard where each online user holds a live phone line (WebSocket) connected to the board. When User A sends a message to User B, the switchboard routes it directly to B's line if B is connected. If B's line is down (offline), the switchboard records the message and queues a callback notification so B gets it when they reconnect.",
-  path:        '/system-design/chat-system',
   howItWorks: [
     'WebSocket connections: HTTP is request-response; chat requires the server to push messages to clients without waiting for a request. WebSockets provide a persistent bidirectional connection. Each client connects to a chat server and holds the connection open. Fallback: Server-Sent Events (SSE) for clients that can\'t maintain WebSocket connections.',
     'Connection routing: with thousands of chat servers, a message sent from User A on Server 1 to User B on Server 2 requires routing. A presence service (backed by Redis) maps user ID to connected server ID. The sending server looks up the recipient\'s server and forwards the message via an internal message bus (Kafka) or direct server-to-server connection.',

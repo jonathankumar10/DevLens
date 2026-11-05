@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Fast & Slow Pointers',
   category: 'linked-list',
-  path: '/algorithms/remove-nth-node',
   description: 'Given the head of a linked list, remove the nth node from the end of the list and return its head.',
   metaphor: 'Two walkers hold a rope exactly n nodes long. The front walker gets a head start of n steps, then both walk together. When the front walker reaches the last node, the back walker is standing right before the node to delete — so it just skips over it. A dummy node in front means even removing the head needs no special case.',
   tags: ['linked-list', 'two-pointers'],

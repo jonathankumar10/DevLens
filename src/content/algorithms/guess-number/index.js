@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Binary Search',
   category: 'binary-search',
-  path: '/algorithms/guess-number',
   description: 'You are playing a number guessing game. I pick a number from 1 to n. Each round you call guess(num) — it returns -1 if your guess is too high, 1 if too low, or 0 if correct. Find the picked number efficiently.',
   metaphor: 'Picture a hallway of numbered doors, 1 through n. Behind exactly one is a prize. You knock on the middle door — a voice replies "Too High!", "Too Low!", or "You got it!". Doors outside your current window are chalked off. Each reply halves your search.',
   tags: ['binary-search'],

@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'api-design',
-  type:        'concept',
-  title:       'API Design',
-  category:    'apis',
-  tags:        ['api-design', 'versioning', 'pagination', 'idempotency', 'rate-limiting', 'rest'],
-  description: 'Principles for designing APIs that are intuitive, stable, and scalable — covering versioning, pagination, idempotency, error handling, and rate limiting.',
+  ...meta,
   metaphor:    'Designing a public door — it must be clearly labelled, wide enough for everyone, safe to open repeatedly, and must not break when the building is renovated. A good API is a contract that outlasts the code behind it.',
-  path:        '/system-design/api-design',
   howItWorks: [
     'REST maps CRUD operations to HTTP verbs on resource URLs. GET retrieves without side effects, POST creates, PUT/PATCH updates, DELETE removes. The URL is the noun, the HTTP verb is the action.',
     'An API gateway handles cross-cutting concerns centrally: authentication (JWT/API key validation), rate limiting, request routing, versioning, and structured error formatting before requests reach backend services.',

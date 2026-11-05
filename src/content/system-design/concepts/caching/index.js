@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'caching',
-  type:        'concept',
-  title:       'Caching',
-  category:    'caching',
-  tags:        ['caching', 'redis', 'memcached', 'ttl', 'cache-invalidation', 'latency', 'lru'],
-  description: 'How storing frequently accessed data closer to the requester eliminates redundant computation and dramatically reduces latency at every layer of the stack.',
+  ...meta,
   metaphor:    'Memorising the answer to a question you get asked constantly — instead of re-reading the textbook every time, you keep the answer at the tip of your tongue. The challenge: knowing when to update your memory.',
-  path:        '/system-design/caching',
   howItWorks: [
     'Cache-aside (lazy loading): the application checks the cache first; on a miss, it reads from the database, writes the result into the cache, then returns it. The most common pattern — simple, and the cache only ever holds data that was actually requested. Risk: if the DB is updated directly, the cache goes stale until its TTL expires.',
     'Read-through: the cache sits in front of the database and owns the miss-fill logic itself — the application only ever talks to the cache, which transparently loads from the DB on a miss. Simplifies application code at the cost of an extra layer to operate.',

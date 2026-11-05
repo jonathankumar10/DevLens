@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Array',
   category: 'arrays-hashing',
-  path: '/algorithms/replace-elements',
   description: 'Given an array arr, replace every element in that array with the greatest element among the elements to its right, and replace the last element with -1. Return the resulting array.',
   metaphor: 'Imagine walking a row of numbered podiums from right to left, carrying a trophy that always holds the highest value seen so far. Before moving left, you swap the current podium\'s number with whatever the trophy shows — then update the trophy if the podium beat it.',
   tags: ['array', 'reverse-scan'],

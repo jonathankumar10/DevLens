@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'building-blocks-overview',
-  type:        'concept',
-  title:       'Introduction to Building Blocks for Modern System Design',
-  category:    'framework',
-  tags:        ['building-blocks', 'bottom-up-approach', 'dns', 'load-balancer', 'database', 'key-value-store', 'cdn', 'sequencer', 'monitoring', 'distributed-cache', 'message-queue', 'pub-sub', 'rate-limiter', 'blob-store', 'distributed-search', 'distributed-logging', 'task-scheduler', 'sharded-counters'],
-  description: 'Most system design problems are the same handful of recurring components wired together differently. Rather than re-deriving a load balancer or a message queue from scratch inside every design, this app — like the interview itself — treats each one as a building block: designed once in depth, then reused by reference whenever a flagship design (Twitter, Uber, WhatsApp, ...) needs it.',
+  ...meta,
   metaphor:    "Bricks versus buildings. Nobody re-invents the brick every time they put up a wall — they design the brick once (dimensions, load tolerance, how it interlocks with the next one) and then reuse that same brick in a house, a warehouse, or a tower, because the properties that make it a good brick don't change with the building. A load balancer, a key-value store, a message queue — same idea. Design each one once, understand it deeply, then snap it into whatever larger system needs it.",
-  path:        '/system-design/building-blocks-overview',
   howItWorks: [
     'The building blocks below are ordered topologically, not alphabetically — each one only depends on blocks that came before it. DNS and load balancers come first because almost everything else assumes a request can already find a server. Databases and the key-value store come next because caching, search, and logging all need somewhere durable to land data. By the time you reach sharded counters at the end, you\'re assumed to already be fluent in caching, partitioning, and replication.',
     'Every building block gets the same treatment a flagship design gets: functional requirements (what it must do), non-functional requirements (how well — availability, latency, consistency), a high-level design, and a detailed design that resolves the one or two hardest sub-problems specific to that block. See Design Requirements for how functional and non-functional requirements are distinguished, and RESHADED for the full checklist this app structures every design around.',

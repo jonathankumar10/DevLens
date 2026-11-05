@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'sharded-counters',
-  type:        'design',
-  title:       'Design Sharded Counters',
-  category:    'designs',
-  tags:        ['sharded-counter', 'hot-row', 'write-contention', 'eventual-consistency', 'redis', 'aggregation'],
-  description: 'Design a counter (like a viral post\'s like count or a video\'s view count) that can absorb tens of thousands of increments per second on a single logical entity — far beyond what one database row can handle, since every increment to the same row contends for the same row-level lock no matter how many database servers exist.',
+  ...meta,
   metaphor:    "A single tip jar at a busy concert versus ten tip jars spread around the venue. One jar means every fan waits in line to drop a coin — the line, not the fans' generosity, becomes the bottleneck. Ten jars let ten people give at once; the venue just needs to empty and add up all ten jars at the end of the night instead of pretending there was only one all along.",
-  path:        '/system-design/sharded-counters',
   howItWorks: [
     'The hot-row problem: a naive UPDATE posts SET likes = likes + 1 WHERE id = X serializes every concurrent increment on that row through the same lock, regardless of how many database shards or replicas exist elsewhere — a viral post can produce tens of thousands of increments per second on one row, and the row itself is the bottleneck, not overall database capacity.',
     'High-level design — splitting the counter: instead of one row per entity, store N shard rows (e.g., post_id=X, shard=0..9), each holding a partial count. An increment picks a random (or hashed-by-requester) shard and updates only that row — spreading write contention across N independently-lockable rows instead of funneling everything through one.',

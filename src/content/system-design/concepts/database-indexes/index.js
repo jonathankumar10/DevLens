@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'database-indexes',
-  type:        'concept',
-  title:       'Database Indexes',
-  category:    'databases',
-  tags:        ['indexes', 'b-tree', 'hash-index', 'query-optimization', 'covering-index', 'composite-index', 'write-amplification'],
-  description: 'An index is a data structure maintained alongside a table that makes specific queries dramatically faster at the cost of write overhead and storage. Without an index, the database scans every row to find matches — O(n). With a B-tree index on the right column, it jumps directly to matching rows — O(log n). Choosing which columns to index and which index type to use is one of the highest-leverage database performance decisions.',
+  ...meta,
   metaphor:    "The index at the back of a textbook. Without it, finding every mention of 'replication' means reading every page sequentially — O(n). With it, you jump directly to the right pages in one lookup — O(log n). The publisher pays the cost of building and maintaining the index at print time so readers save time at read time. A bad index (indexing every word including 'the' and 'and') wastes space and slows printing without helping readers.",
-  path:        '/system-design/database-indexes',
   howItWorks: [
     'B-tree indexes (the default in PostgreSQL and MySQL) maintain a balanced tree of indexed values pointing to row locations. Supports equality lookups, range queries (WHERE age > 30), and ORDER BY operations in O(log n). The most versatile index type.',
     'Hash indexes store a hash of each indexed value pointing to the row. O(1) equality lookups — faster than B-tree for exact matches. Completely useless for range queries (WHERE id > 500) or sorting, since hash values have no ordering.',

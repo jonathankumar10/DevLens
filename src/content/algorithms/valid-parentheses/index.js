@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Stack',
   category: 'stack',
-  path: '/algorithms/valid-parentheses',
   description: 'Given a string s containing just the characters \'(\', \')\', \'{\', \'}\', \'[\' and \']\', determine if the input string is valid. Open brackets must be closed by the same type and in the correct order.',
   metaphor: 'Picture a ticket-stub checker at nested gates. Every opening gate hands you a stub — you stack them up. At each closing gate you must present the matching stub from the top of your pile. Wrong stub or no stub means the path is blocked. Leftover stubs when all gates are passed also means invalid.',
   tags: ['stack', 'string'],

@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'notification-system',
-  type:        'design',
-  title:       'Design a Notification System',
-  category:    'designs',
-  tags:        ['notifications', 'push-notifications', 'email', 'sms', 'fcm', 'apns', 'message-queue', 'retry', 'fan-out', 'user-preferences', 'rate-limiting'],
-  description: 'Design a notification delivery system that sends millions of push notifications, emails, and SMS messages per day to users across mobile (iOS/Android) and email channels. The system must be highly available, handle delivery failures with retries, respect user notification preferences, and not spam users — while delivering time-sensitive notifications quickly.',
+  ...meta,
   metaphor:    "A postal sorting facility that handles physical mail, email, and text messages simultaneously. Incoming requests drop into sorting queues by channel and priority. Workers pick from their queue, stamp with user preferences (do-not-disturb, opted out), and route to the appropriate carrier: Apple's postal network for iPhones, Google's for Androids, an SMTP relay for email. Undelivered items go to a retry queue, not the trash.",
-  path:        '/system-design/notification-system',
   howItWorks: [
     'Notification service API: upstream services (OrderService, SocialService, MarketingService) call a simple API — "notify user X with message Y via channels Z." The notification service owns channel selection, user preference checks, and delivery — callers do not need to know about APNs or FCM.',
     'User preference store: each user has a preference record — opted-in channels, quiet hours, notification categories they want. The notification service checks preferences before dispatching. Marketing notifications respect opt-outs; security alerts may override quiet hours. Store in a fast key-value store (Redis or DynamoDB) with TTL-based caching.',

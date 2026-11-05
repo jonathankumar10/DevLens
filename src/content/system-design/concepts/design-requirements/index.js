@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'design-requirements',
-  type:        'concept',
-  title:       'Design Requirements',
-  category:    'requirements',
-  tags:        ['requirements', 'scalability', 'availability', 'reliability', 'redundancy', 'throughput', 'latency', 'sla', 'slo', 'fault-tolerance'],
-  description: 'Every distributed system reduces to three problems: moving data across a network, storing it in the right place, and transforming it into something useful. Design requirements are the measurable targets — availability, reliability, throughput, and latency — that tell you whether your solution to those three problems is actually good enough.',
+  ...meta,
   metaphor:    "A city's water system: the pipes move water (data movement), the reservoir stores it (data storage), and the treatment plant transforms it into drinking water (data transformation). The system quality requirements — pressure, purity, uptime — are the design requirements. Dig the pipes first, engineer to spec second.",
-  path:        '/system-design/design-requirements',
   howItWorks: [
     'Frame every design as three sub-problems: moving data (network, queues, CDNs), storing data (databases, blob stores, distributed file systems), and transforming data (stream processors, batch jobs, aggregations). Every architectural decision maps to one of these three.',
     'Collect availability requirements first — they cascade into everything else. "Five nines" (99.999%) demands redundant hardware, automated failover, and zero-downtime deployments. "Three nines" (99.9%) does not. Establish the target before picking any technology.',

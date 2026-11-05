@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'distributed-task-scheduler',
-  type:        'design',
-  title:       'Design a Distributed Task Scheduler',
-  category:    'designs',
-  tags:        ['task-scheduler', 'cron', 'idempotency', 'leader-election', 'priority-queue', 'distributed-lock', 'bin-packing'],
-  description: 'Design a system (like Airflow, Chronos, or a distributed cron) that schedules and executes tasks — one-off, delayed, or recurring — across a fleet of workers, ensuring each task runs exactly when intended, exactly once despite retries and worker failure, and without overloading any single worker\'s CPU or memory.',
+  ...meta,
   metaphor:    "A dispatch office for a delivery fleet, not a single driver's to-do list. Jobs arrive with different urgency (priority), some must happen at an exact future time (delayed execution), and the dispatcher must never send the same package out with two different drivers (idempotency) even if a driver's radio cuts out mid-route (worker failure) and needs the job reassigned.",
-  path:        '/system-design/distributed-task-scheduler',
   howItWorks: [
     'Task submission and priority queuing: clients submit a task (payload, priority, optional run-at time, retry policy) to the scheduler, which persists it durably before returning — a task must survive a scheduler crash between submission and execution. Ready tasks sit in a priority queue so urgent work is dispatched ahead of routine work even under backlog.',
     'Delayed/scheduled execution: tasks with a future run-at time don\'t belong in the ready queue yet. A time-indexed structure (a min-heap keyed by run time, or a "timing wheel" bucketed by time slot) holds pending-future tasks efficiently and moves each into the ready queue exactly when its time arrives, without polling every pending task on every tick.',

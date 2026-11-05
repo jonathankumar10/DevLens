@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'nosql',
-  type:        'concept',
-  title:       'NoSQL Databases',
-  category:    'databases',
-  tags:        ['nosql', 'mongodb', 'dynamodb', 'cassandra', 'document', 'key-value', 'wide-column', 'graph', 'schema-flexibility'],
-  description: 'NoSQL databases store data in formats other than relational tables — documents, key-value pairs, wide columns, or graphs. Each model is optimized for a specific access pattern. Where SQL normalizes data into rigid rows, NoSQL trades relational integrity for horizontal scalability, schema flexibility, and query speed on a specific data shape.',
+  ...meta,
   metaphor:    "A filing cabinet vs. a wall of sticky notes. SQL is the cabinet — strict folders, labeled tabs, every document in its place. NoSQL is the sticky-note wall — you can put anything anywhere, find things fast by color or tag, and add thousands of new notes without restructuring the whole wall. Chaotic if misused, powerful if your access pattern matches the model.",
-  path:        '/system-design/nosql',
   howItWorks: [
     'Document stores (MongoDB, Firestore) keep data as self-contained JSON documents — no schema required, nested fields allowed. A user document can embed their address, preferences, and recent orders all in one read. Good for content, user profiles, and catalogs with variable fields.',
     'Key-value stores (Redis, DynamoDB in key-value mode) retrieve a single record by key in O(1). Exceptional throughput with zero query flexibility — you can only look up by the exact key. Good for sessions, caches, shopping carts, and feature flags.',

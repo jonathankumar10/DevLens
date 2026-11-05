@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'consistent-hashing',
-  type:        'concept',
-  title:       'Consistent Hashing',
-  category:    'proxies',
-  tags:        ['consistent-hashing', 'distributed', 'sharding', 'cache', 'ring', 'hash', 'rebalancing'],
-  description: 'A hash distribution technique that minimises data movement when servers are added or removed — the foundation of horizontally scalable caches and distributed databases.',
+  ...meta,
   metaphor:    'A circular clock face where servers and keys share positions. When a server is removed, only the keys "just behind" it need to move to the next server — not the entire keyspace.',
-  path:        '/system-design/consistent-hashing',
   howItWorks: [
     'A virtual ring represents the 0–2³² hash space. Both server identifiers and data keys are hashed onto this ring. Each key maps to the first server encountered when walking clockwise from its ring position — this is its "responsible" server.',
     'When a server is added, only the keys that fall between the new server and its predecessor on the ring need to move. On average only 1/N of the keyspace is affected, versus ~all keys with naive modulo hashing.',

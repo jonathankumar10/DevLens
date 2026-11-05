@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'http',
-  type:        'concept',
-  title:       'HTTP',
-  category:    'apis',
-  tags:        ['http', 'https', 'tls', 'request', 'response', 'stateless', 'rest', 'http2', 'http3', 'quic', 'keep-alive', 'multiplexing', 'status-codes', 'headers'],
-  description: 'The request-response protocol powering the web. A client sends a request (method, path, headers, body); a server returns a response (status code, headers, body). Every exchange is stateless and self-contained — the server holds no memory between requests, which is what makes HTTP services easy to scale horizontally.',
+  ...meta,
   metaphor:    'A waiter taking orders (requests) and returning with food (responses). Each visit is independent — the waiter remembers nothing between trips, and every order must carry full context: who you are, what you want, what format you expect. Handing the waiter a menu card (headers) alongside your order is how you pass that context every time.',
-  path:        '/system-design/http',
   howItWorks: [
     'Request anatomy: a request has three parts. The request line (method + path + version: "GET /api/users HTTP/1.1"), followed by headers (key-value metadata: Host, Accept, Authorization, Content-Type), then an optional body. GET and DELETE have no body; POST, PUT, and PATCH carry a payload. Headers are case-insensitive and sent as plain text in HTTP/1.x.',
     'Response anatomy: a response has a status line (version + code + reason: "HTTP/1.1 200 OK"), response headers (Content-Type, Content-Length, Cache-Control, Set-Cookie), then the optional body. The blank line separating headers from body is significant — parsers use it as the boundary.',

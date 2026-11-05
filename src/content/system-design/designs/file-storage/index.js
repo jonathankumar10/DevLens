@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'file-storage',
-  type:        'design',
-  title:       'Design a File Storage Service',
-  category:    'designs',
-  tags:        ['file-storage', 'dropbox', 'google-drive', 'block-storage', 'chunking', 'deduplication', 'sync', 'conflict-resolution', 'object-storage', 'delta-sync'],
-  description: 'Design a cloud file storage and synchronization service (like Dropbox or Google Drive) that lets users store files in the cloud, sync them across multiple devices, and share them with collaborators. Key challenges include efficient sync of large files (delta sync, chunking), conflict resolution when the same file is edited on two offline devices, and handling billions of files at global scale.',
+  ...meta,
   metaphor:    "A sophisticated copy shop that handles both storage and synchronization. You send a document to the shop once. They cut it into standard-size sections, label each section with a fingerprint, and store only unique sections — if two customers have the same legal disclaimer on page 3, they share one stored copy of that section. When you update just page 5, only that section's fingerprint changes and only that chunk needs uploading.",
-  path:        '/system-design/file-storage',
   howItWorks: [
     'File chunking: large files are split into fixed-size chunks (4–8 MB). Each chunk is content-addressed — its ID is a hash (SHA-256) of its content. Changed files produce a changed chunk set; unchanged chunks are not re-uploaded. A 1 GB file edited in the last paragraph produces exactly one new chunk and 249 unchanged, already-stored chunks — delta sync.',
     'Deduplication: because chunks are content-addressed, identical chunks across different files or users share a single stored copy. The metadata service maps file → chunk list; the chunk store maps chunk hash → stored bytes. Dropbox reports saving enormous amounts of storage via deduplication across their user base.',

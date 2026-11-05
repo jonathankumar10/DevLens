@@ -75,7 +75,7 @@ export const ALGORITHMS = [
   cloneGraph,
   climbingStairs,
   houseRobber,
-]
+].map((algo) => ({ ...algo, path: `/algorithms/${algo.id}` }))
 
 export { DIFFICULTY_COLOR } from './palette'
 

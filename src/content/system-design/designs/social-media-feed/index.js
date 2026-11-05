@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'social-media-feed',
-  type:        'design',
-  title:       'Design a Social Media Feed',
-  category:    'designs',
-  tags:        ['social-feed', 'news-feed', 'fan-out', 'fan-out-on-write', 'fan-out-on-read', 'ranking', 'timeline', 'celebrity-problem', 'redis', 'pagination'],
-  description: 'Design the news feed feature of a social media platform (like Twitter or Instagram) that shows each user a ranked, paginated stream of posts from accounts they follow, updated in near real-time. The core challenges are feed generation at scale (fan-out across millions of followers), feed ranking, and handling celebrity accounts with millions of followers efficiently.',
+  ...meta,
   metaphor:    "A daily personalized newspaper. When a journalist (user you follow) publishes a story, the newspaper has two options: immediately print a copy for each subscriber (fan-out on write) or wait until you open the paper and pull all stories from every journalist you follow (fan-out on read). Most newspapers pre-print editions for most journalists, but for the most famous columnists with 10 million readers, they print on demand to avoid a 10-million-copy print run for every tweet.",
-  path:        '/system-design/social-media-feed',
   howItWorks: [
     'Fan-out on write (push model): when User A posts, the system immediately writes the post ID into the feed caches of all A\'s followers. Each follower\'s feed is a pre-computed, sorted list of post IDs in Redis. Loading the feed is a single Redis ZRANGE read — extremely fast. Cost: each post triggers N writes (N = follower count). Infeasible for accounts with millions of followers.',
     'Fan-out on read (pull model): the feed is computed at read time by fetching the last K posts from each account the user follows and merging them. No pre-computation. Cost: each feed load triggers N database reads (one per followed account), then a sort/merge. Infeasible when a user follows thousands of accounts.',

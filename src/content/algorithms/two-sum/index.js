@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Hash Map',
   category: 'arrays-hashing',
-  path: '/algorithms/two-sum',
   description: 'Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. You may assume exactly one solution exists, and you may not use the same element twice.',
   metaphor: 'We picture each number as a glass bottle filled to that level. Scanning left to right, we check whether the bottle we need to complete the pair is already on the shelf.',
   tags: ['array', 'hash-map'],

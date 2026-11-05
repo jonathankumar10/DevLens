@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'acid-and-base',
-  type:        'concept',
-  title:       'ACID vs BASE',
-  category:    'databases',
-  tags:        ['acid', 'base', 'transactions', 'atomicity', 'consistency', 'isolation', 'durability', 'eventual-consistency', 'distributed'],
-  description: 'ACID and BASE are two competing models for how databases handle concurrent writes, failures, and consistency. ACID (Atomicity, Consistency, Isolation, Durability) guarantees every transaction either fully succeeds or fully rolls back with no intermediate state visible to others. BASE (Basically Available, Soft state, Eventually consistent) trades strict correctness for availability and write throughput — accepting that replicas may briefly diverge.',
+  ...meta,
   metaphor:    "ACID is a bank vault transaction: the teller locks the counter, deducts from one account, credits another, verifies both, then unlocks. No one sees the intermediate state. BASE is a crowdsourced wiki: your edit goes live immediately, propagates to mirrors over the next few seconds, and any reader may briefly see the old version — but the system stays available at all times and all readers eventually converge.",
-  path:        '/system-design/acid-and-base',
   howItWorks: [
     'Atomicity: a transaction is all-or-nothing. A bank transfer that debits Account A and credits Account B either completes both operations or neither — a crash halfway through rolls back both. No partial writes survive a failure.',
     'Consistency: every transaction transitions the database from one valid state to another, enforcing all defined constraints — foreign keys, unique constraints, check constraints. A transaction that would violate a constraint is aborted entirely.',

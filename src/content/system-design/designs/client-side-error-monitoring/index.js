@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'client-side-error-monitoring',
-  type:        'design',
-  title:       'Design a Client-Side Error Monitoring System',
-  category:    'designs',
-  tags:        ['monitoring', 'error-tracking', 'client-side', 'source-maps', 'javascript', 'observability', 'sendbeacon'],
-  description: 'Design the browser/mobile-client counterpart to server-side error monitoring — capturing uncaught JS exceptions, unhandled promise rejections, and manual error reports from a device the monitoring system does not control, then reliably getting that data back to the server despite flaky networks, page unloads, and minified code.',
+  ...meta,
   metaphor:    "A black box flight recorder versus a server's control-tower logs. The control tower (backend monitoring) has a stable connection and full visibility. The flight recorder (client SDK) has to keep working when the connection drops, survive the plane going down (the tab closing) without losing the last few seconds of data, and its raw recording is meaningless until someone with the decoder key (source maps) translates it back into readable events.",
-  path:        '/system-design/client-side-error-monitoring',
   howItWorks: [
     'Capture surface: window.onerror catches uncaught synchronous exceptions, window.addEventListener("unhandledrejection", ...) catches rejected promises nothing else handled, and an explicit captureException() call lets application code report handled errors it still wants visibility into. All three funnel into one internal event format.',
     'Self-protection: the SDK\'s own instrumentation must never throw — every capture path is wrapped so that a bug in the monitoring code cannot itself crash the host page or, worse, recursively report itself as an error. This is the client-side analogue of the ingestion pipeline needing to survive an error storm.',

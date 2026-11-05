@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Two Pointers',
   category: 'two-pointers',
-  path: '/algorithms/two-sum-ii',
   description: 'Given a 1-indexed array of integers sorted in non-decreasing order, find two numbers that add up to target. Return their indices [index1, index2] (1-indexed, index1 < index2) using only constant extra space.',
   metaphor: 'Because the array is sorted, the two ends act like a volume knob. Sum too big? Turn it down by moving the right pointer to a smaller number. Too small? Turn it up by moving the left pointer to a bigger number. Every move rules out a whole row of pairs, so one pass is enough — no hash map needed.',
   tags: ['two-pointers', 'array', 'sorted'],

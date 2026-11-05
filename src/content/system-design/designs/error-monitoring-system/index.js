@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'error-monitoring-system',
-  type:        'design',
-  title:       'Design a Server-Side Error Monitoring System',
-  category:    'designs',
-  tags:        ['monitoring', 'error-tracking', 'observability', 'sentry', 'fingerprinting', 'kafka', 'alerting'],
-  description: 'Design a system (like Sentry or Rollbar) that captures exceptions thrown by backend services, groups the millions of raw occurrences into a manageable list of distinct issues, and alerts on-call engineers when something new or newly-worse appears. The core challenge is not capturing an error — it is turning a firehose of individual stack traces into a small, ranked, actionable list.',
+  ...meta,
   metaphor:    "An ER triage desk instead of a pile of individual patient files. Thousands of walk-ins (raw error events) arrive per hour, but the desk doesn't hand a doctor one chart per patient — it groups them by symptom (this is the fourth cardiac case tonight), tracks how often each symptom is recurring, and pages a specialist only when a new symptom appears or an existing one is spiking.",
-  path:        '/system-design/error-monitoring-system',
   howItWorks: [
     'Capture: a language-specific SDK wraps the service (middleware, uncaught exception handler, or explicit capture call) and turns a thrown exception into a structured event — stack trace, service name, host, deploy version, timestamp, and request context (user ID, route, headers minus secrets).',
     'Ingestion pipeline: the SDK POSTs the event to a lightweight ingestion API, which does minimal validation and immediately writes to a durable queue (Kafka) rather than processing synchronously. This decouples error-report volume from processing capacity and absorbs bursts — a bad deploy that throws on every request must not take down the monitoring system itself.',

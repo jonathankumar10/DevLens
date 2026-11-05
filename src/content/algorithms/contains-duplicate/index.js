@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Hash Set',
   category: 'arrays-hashing',
-  path: '/algorithms/contains-duplicate',
   description: 'Given an integer array nums, return true if any value appears at least twice, and false if every element is distinct.',
   metaphor: 'We picture each number as a pile of gold coins — the pile height equals the value. As we scan left to right we drop each height into a seen bin; the moment we reach a pile whose height is already in the bin, the alarm sounds.',
   tags: ['array', 'hash-set', 'sorting'],

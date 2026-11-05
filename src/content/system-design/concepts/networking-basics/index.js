@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'networking-basics',
-  type:        'concept',
-  title:       'Networking Basics',
-  category:    'networking',
-  tags:        ['networking', 'ip', 'packets', 'routing', 'ttl', 'ports', 'protocols', 'osi', 'bandwidth', 'latency', 'tcp', 'udp', 'bgp'],
-  description: 'How computers communicate over a network — IP addresses, packets, routing, and the layered protocol model that governs all internet traffic. Understanding these fundamentals is essential for reasoning about distributed systems: every RPC, database query, and API call is packets traveling through this infrastructure.',
+  ...meta,
   metaphor:    'The postal system: every envelope has a source address (IP), a destination address, and a return-to-sender limit (TTL). It travels through sorting hubs (routers) that read only the destination and decide the next drop point — never opening the envelope. The mailbox slot number is the port; the mail type (first-class, certified) is the protocol.',
-  path:        '/system-design/networking-basics',
   howItWorks: [
     'IP addressing: every device on a network has an IP address — a 32-bit (IPv4) or 128-bit (IPv6) identifier. IPv4 addresses like 192.168.1.1 are divided into a network prefix and a host suffix. CIDR notation (10.0.0.0/24) specifies how many bits are the prefix, giving a subnet of 256 addresses.',
     'Packet structure: data is broken into packets — typically 1,500 bytes on Ethernet (MTU). Each packet has an IP header (src IP, dst IP, TTL, checksum, protocol) and a payload. Larger data is fragmented and reassembled at the destination. The header adds overhead; efficient protocols minimize it.',

@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'distributed-cache',
-  type:        'design',
-  title:       'Design a Distributed Cache',
-  category:    'designs',
-  tags:        ['distributed-cache', 'memcached', 'redis', 'consistent-hashing', 'hot-key', 'replication', 'eviction'],
-  description: 'Design a cache that spans multiple machines — like a Memcached or Redis cluster — so that the working set of hot data can exceed the memory of any single server. Unlike an in-process or single-node cache, a distributed cache must decide which node owns which key, survive individual node failure, and handle a small number of keys receiving disproportionate traffic.',
+  ...meta,
   metaphor:    "A single-node cache is one big walk-in fridge. A distributed cache is a chain of smaller fridges across a building, where a shared map (consistent hashing) tells everyone exactly which fridge holds the milk — so nobody has to check all of them, and adding a new fridge only reshuffles a small slice of the map instead of relabeling everything.",
-  path:        '/system-design/distributed-cache',
   howItWorks: [
     'Key distribution with consistent hashing: each node owns a range of a hash ring, and a key\'s cache node is determined by hashing the key onto that ring. Adding or removing a node only remaps the keys in its immediate ring neighborhood, not the entire keyspace — critical for a cache, since a full remap would empty the cache and hammer the database.',
     'Client-side vs proxy routing: clients can embed the hash ring and talk directly to the correct cache node (lower latency, used by Memcached clients), or route through a proxy like Twemproxy or a Redis Cluster-aware client that hides the topology. Direct client routing is faster but means every client must stay in sync with cluster membership changes.',

@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Array',
   category: 'arrays-hashing',
-  path: '/algorithms/concatenation-of-array',
   description: 'Given an integer array nums of length n, return an array ans of length 2n where ans[i] == nums[i] and ans[i + n] == nums[i] for 0 <= i < n. Essentially, ans is the concatenation of two copies of nums.',
   metaphor: 'Picture a rubber stamp carrying one value at a time — at each stop it presses the same value down into two spots at once: the matching slot in the left half and the matching slot in the right half.',
   tags: ['array'],

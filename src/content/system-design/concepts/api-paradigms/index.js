@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'api-paradigms',
-  type:        'concept',
-  title:       'API Paradigms',
-  category:    'apis',
-  tags:        ['rest', 'graphql', 'grpc', 'api', 'protobuf', 'http', 'microservices'],
-  description: 'The three dominant API styles — REST, GraphQL, and gRPC — and when each is the right tool for the job.',
+  ...meta,
   metaphor:    'Three ways to order food: REST is a fixed menu with clear item codes; GraphQL lets you specify exactly which ingredients you want on your plate; gRPC is a direct line to the kitchen with machine-readable order forms.',
-  path:        '/system-design/api-paradigms',
   howItWorks: [
     'REST uses standard HTTP verbs (GET, POST, PUT, DELETE) on resource URLs. Every entity has a URL; HTTP handles caching via standard headers. The server defines the response shape — clients receive what the server decides to send.',
     'GraphQL exposes a single POST /graphql endpoint with a type system (schema). Clients send a query declaring exactly which fields to return, including nested relations. The server resolves each field independently using resolver functions.',

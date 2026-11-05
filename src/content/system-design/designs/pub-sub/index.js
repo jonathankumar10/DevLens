@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'pub-sub',
-  type:        'design',
-  title:       'Design a Pub-Sub System',
-  category:    'designs',
-  tags:        ['pub-sub', 'fan-out', 'topics', 'subscriptions', 'sns', 'push-delivery', 'pull-delivery'],
-  description: 'Design a publish-subscribe system (like Google Cloud Pub/Sub or AWS SNS) where publishers send messages to a topic without knowing who — or how many — subscribers will receive them. Where a point-to-point queue delivers each message to exactly one consumer, pub-sub\'s defining property is fan-out: every message reaches every independent subscription to that topic.',
+  ...meta,
   metaphor:    "A radio broadcast versus a phone call. A phone call (point-to-point queue) connects one caller to one specific recipient. A radio broadcast (pub-sub) is transmitted once, and anyone with a receiver tuned to that frequency (subscribed to that topic) hears it — the broadcaster never knows or cares how many receivers are listening.",
-  path:        '/system-design/pub-sub',
   howItWorks: [
     'Topics and subscriptions: a publisher sends messages to a named topic, unaware of any subscribers. Each subscriber creates a subscription to that topic, and the system maintains an independent copy of the message stream (or independent delivery cursor) per subscription — one publish can fan out to dozens of unrelated subscriptions, each processed at its own pace.',
     'Push vs pull delivery: in push delivery, the system calls a subscriber\'s registered HTTP endpoint or webhook as soon as a message arrives — lower latency, but the subscriber must be reachable and handle bursts. In pull delivery, the subscriber polls the system for new messages on its own schedule — better backpressure control, since a slow subscriber just pulls less often instead of the system retrying failed pushes.',

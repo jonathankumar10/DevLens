@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Two Pointers',
   category: 'two-pointers',
-  path: '/algorithms/move-zeroes',
   description: 'Given an integer array nums, move all 0s to the end while keeping the relative order of the non-zero elements. Do it in-place without making a copy of the array.',
   metaphor: 'A scout (i) walks the whole line while a placeholder (left) marks the next free front-row seat. Every time the scout finds a non-zero, it swaps it into that seat and the placeholder moves up one. Zeros get pushed backward naturally — nobody ever has to look for them.',
   tags: ['two-pointers', 'array', 'in-place'],

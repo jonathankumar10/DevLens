@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Graph Traversal',
   category: 'graphs',
-  path: '/algorithms/bfs',
   description: 'Given an m × n 2D binary grid of "1"s (land) and "0"s (water), return the number of islands. An island is formed by connecting adjacent land cells horizontally or vertically, and is surrounded by water.',
   metaphor: 'We picture the grid as a city where each land cell is a district. A car starts at one district and drives outward level by level — exactly how BFS explores a graph.',
   tags: ['graph', 'queue', 'bfs'],

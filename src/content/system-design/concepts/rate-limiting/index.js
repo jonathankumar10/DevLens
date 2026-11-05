@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'rate-limiting',
-  type:        'concept',
-  title:       'Rate Limiting',
-  category:    'scalability',
-  tags:        ['rate-limiting', 'token-bucket', 'leaky-bucket', 'sliding-window', 'fixed-window', 'throttling', 'ddos-protection', 'api-abuse'],
-  description: 'Rate limiting controls how many requests a client can make within a given time window. It protects backend services from being overwhelmed by traffic spikes, prevents API abuse, enforces fair usage across customers, and provides a first line of defense against DDoS attacks. The key design choices are the algorithm (token bucket, leaky bucket, sliding window) and the scope at which limits are applied (per user, per IP, per API key).',
+  ...meta,
   metaphor:    "A nightclub bouncer with a clicker counter. The club allows 100 new entries per hour. Each person who enters gets one click. Once the counter hits 100, everyone waits at the door until the next hour starts — regardless of whether the dance floor is actually full. VIP guests (paid API tiers) get a separate, larger entrance with a higher limit.",
-  path:        '/system-design/rate-limiting',
   howItWorks: [
     'Token bucket: a bucket holds tokens up to a maximum capacity. Tokens refill at a fixed rate (e.g., 10 per second). Each request consumes one token. If the bucket is empty, the request is rejected (429) or queued. Allows short bursts up to the bucket capacity while enforcing a sustained rate ceiling.',
     'Leaky bucket: requests enter a queue (the bucket) and are processed at a constant, fixed output rate — like water dripping from a hole. Regardless of input burst size, output is perfectly smooth. Requests that overflow the bucket capacity are dropped. Provides traffic shaping rather than just rejection.',

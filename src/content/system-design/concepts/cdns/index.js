@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'cdns',
-  type:        'concept',
-  title:       'CDNs',
-  category:    'caching',
-  tags:        ['cdn', 'edge', 'caching', 'latency', 'static-assets', 'distributed', 'ddos'],
-  description: 'Content Delivery Networks distribute static assets across global edge servers — serving users from the nearest location to slash latency and absorb traffic spikes.',
+  ...meta,
   metaphor:    'A chain of local warehouses — instead of shipping every order from one central factory, you pre-position inventory in cities close to your customers. Most orders ship in hours, not days.',
-  path:        '/system-design/cdns',
   howItWorks: [
     'Pull CDN (lazy population): edges start cold and populate on demand — the first request for a path is a miss that fetches from origin and caches the result, every request after is a hit. Simple to operate (no publish step) but a newly-deployed or rarely-hit asset causes a "thundering herd" of near-simultaneous origin fetches across edges.',
     'Push CDN (eager population): the origin proactively uploads content to every edge ahead of time, typically on publish. No cold-cache misses for known content — used for video segments and release bundles where the full asset set is known in advance. Costs more storage since every edge holds content regardless of local demand.',

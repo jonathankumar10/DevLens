@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'rate-limiter',
-  type:        'design',
-  title:       'Design a Rate Limiter',
-  category:    'designs',
-  tags:        ['rate-limiting', 'token-bucket', 'sliding-window', 'redis', 'api-gateway', 'distributed-rate-limiter', 'lua-script', 'throttling'],
-  description: 'Design a distributed rate limiting service that enforces per-user, per-IP, or per-API-key request quotas across a fleet of API gateway nodes. The system must be accurate under concurrent requests, work consistently regardless of which gateway node a request hits, handle millions of unique identifiers, and fail open (pass traffic through) when the rate limiter itself becomes unavailable.',
+  ...meta,
   metaphor:    "A concert ticketing office with a shared tally board. Multiple ticket windows (API gateway nodes) serve customers simultaneously. Instead of each window keeping its own count, they all consult a central board (Redis) before issuing a ticket. The board uses chalk that can be updated in a single atomic swipe — no two windows can accidentally hand out the same ticket.",
-  path:        '/system-design/rate-limiter',
   howItWorks: [
     'Algorithm choice: token bucket for API rate limiting (allows bursts up to bucket capacity while enforcing sustained average rate). Sliding window counter for per-minute quotas with boundary-attack protection. Fixed window for simplicity in low-risk contexts. The sliding window counter approximates accuracy by interpolating two adjacent fixed-window counters.',
     'Distributed counter with Redis: store counters in Redis using INCR + EXPIRE. The check-and-increment must be atomic — use a Lua script or Redis MULTI/EXEC transaction. A single Lua script reads the current count, compares to limit, increments if below limit, and returns the result atomically without race conditions.',

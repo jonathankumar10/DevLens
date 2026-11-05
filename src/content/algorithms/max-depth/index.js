@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Tree DFS',
   category: 'trees',
-  path: '/algorithms/max-depth',
   description: 'Given the root of a binary tree, return its maximum depth — the number of nodes along the longest path from the root down to the farthest leaf.',
   metaphor: 'Every node asks its two children "how deep are you?" and waits. An empty child answers 0. Once both answers arrive, the node reports one more than the bigger answer back to its own parent. The answers bubble up from the leaves until the root has the final number.',
   tags: ['tree', 'dfs', 'recursion'],

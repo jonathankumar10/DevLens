@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Linked List Design',
   category: 'linked-list',
-  path: '/algorithms/design-linked-list',
   description: 'Implement MyLinkedList with get(index), addAtHead(val), addAtTail(val), addAtIndex(index, val) and deleteAtIndex(index). Indices are 0-based; invalid indices return -1 (get) or do nothing.',
   metaphor: 'Two permanent bookends — a dummy head and a dummy tail — sit at either end of a doubly linked list. Because every real node always has a neighbour on both sides, every insert and delete is the same four-pointer rewire. No "is the list empty?" or "is this the first node?" special cases, ever.',
   tags: ['linked-list', 'design', 'doubly-linked-list', 'sentinel'],

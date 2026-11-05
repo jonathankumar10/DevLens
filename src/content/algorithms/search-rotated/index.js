@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Binary Search',
   category: 'binary-search',
-  path: '/algorithms/search-rotated',
   description: 'A sorted array of distinct integers has been rotated at an unknown pivot (e.g. [0,1,2,4,5,6,7] → [4,5,6,7,0,1,2]). Given the array and a target, return the index of target or -1 if it is not present, in O(log n) time.',
   metaphor: 'Two binary searches back to back. The first one finds the pivot — the smallest element, where the array "restarts". That splits the array into two plain sorted halves. One glance at the target tells us which half it must live in, and an ordinary binary search finishes the job.',
   tags: ['binary-search', 'array'],

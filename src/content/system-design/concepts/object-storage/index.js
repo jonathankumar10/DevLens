@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'object-storage',
-  type:        'concept',
-  title:       'Object Storage',
-  category:    'storage',
-  tags:        ['object-storage', 's3', 'blob-storage', 'cdn', 'presigned-url', 'multipart-upload', 'versioning', 'lifecycle-policy', 'gcs', 'azure-blob'],
-  description: 'Object storage treats files as discrete objects — each with its data, metadata, and a globally unique key — stored in flat namespaces called buckets. Unlike file systems (hierarchical directories) or block storage (raw disk sectors), object storage is accessed entirely via HTTP APIs and scales to exabytes without administrative overhead. It is the foundation of virtually every cloud storage system: AWS S3, Google Cloud Storage, and Azure Blob Storage.',
+  ...meta,
   metaphor:    "A massive warehouse where every item is stored in its own sealed bag labeled with a barcode. You tell the warehouse which barcode you want and it retrieves the bag directly, without navigating aisles or shelves. The warehouse can hold billions of bags, adds new ones instantly, and lets you share a temporary time-limited voucher to retrieve a specific bag without giving away your master key.",
-  path:        '/system-design/object-storage',
   howItWorks: [
     'Objects are stored with three components: the data payload (binary content of any size), metadata (content-type, size, user-defined key-value pairs), and a unique key within a bucket. Keys can contain slashes to simulate directory structure, but the namespace is fundamentally flat — there are no real directories.',
     'Uploads go directly to the storage service via HTTP PUT or multipart upload. Multipart upload splits files into parts (minimum 5 MB each), uploads them in parallel or across resumable sessions, then assembles them. Essential for files over 1 GB — a failed single-part upload wastes the entire transfer.',

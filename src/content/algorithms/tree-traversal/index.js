@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'DFS',
   category: 'trees',
-  path: '/algorithms/tree-traversal',
   description: 'Given the root of a binary tree, return the values of its nodes in traversal order. Inorder visits left → node → right; preorder visits node → left → right; postorder visits left → right → node.',
   metaphor: 'We picture the tree as a living organism where each node glows as it is visited. Watching the light travel through the branches makes the difference between the three orders immediately obvious.',
   tags: ['tree', 'dfs', 'recursion'],

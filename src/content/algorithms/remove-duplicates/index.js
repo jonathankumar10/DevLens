@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Two Pointers',
   category: 'two-pointers',
-  path: '/algorithms/remove-duplicates',
   description: 'Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place so each unique element appears only once, keeping the relative order. Return k, the number of unique elements; the first k slots of nums must hold them.',
   metaphor: 'A reader (i) scans ahead while a writer (k) guards the end of the clean prefix. Because the array is sorted, a duplicate always sits right next to its twin — so the reader only has to compare against the last value the writer kept. New value? The writer copies it and steps forward.',
   tags: ['two-pointers', 'array', 'in-place'],

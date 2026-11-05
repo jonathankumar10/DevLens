@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Binary Search',
   category: 'binary-search',
-  path: '/algorithms/find-min-rotated',
   description: 'A sorted array of unique integers has been rotated between 1 and n times (e.g. [0,1,2,4,5,6,7] → [4,5,6,7,0,1,2]). Return the minimum element in O(log n) time.',
   metaphor: 'A rotated array is two sorted staircases glued together, and the minimum is the bottom of the drop. Compare the middle step to the rightmost step: if mid is higher, the drop must be to its right. If mid is lower, mid is already on the lower staircase — the minimum is mid or somewhere to its left.',
   tags: ['binary-search', 'array'],

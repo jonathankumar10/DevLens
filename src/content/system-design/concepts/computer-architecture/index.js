@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'computer-architecture',
-  type:        'concept',
-  title:       'Computer Architecture',
-  category:    'hardware',
-  tags:        ['cpu', 'cache', 'ram', 'disk', 'hardware', 'latency', 'moores-law'],
-  description: 'Every computer is built from five core hardware components: CPU, RAM, GPU, Storage, and Network. The CPU sits at the centre — all data flows through it. Understanding how these components interact is the foundation of every system design decision.',
+  ...meta,
   metaphor:    "A busy restaurant kitchen: the chef (CPU) is the centre of everything — they direct prep cooks (GPU) for bulk work, grab ingredients from the counter (RAM) constantly, send runners to the pantry (SSD) for storage, and take orders from the front-of-house (NIC/Network).",
-  path:        '/system-design/computer-architecture',
   howItWorks: [
     'Everything you use — apps, files, the OS — lives permanently on the SSD or HDD.',
     'When you open an app, the CPU copies it from storage into RAM, where it is about 1,000 times faster to access.',

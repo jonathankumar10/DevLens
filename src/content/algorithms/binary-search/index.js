@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Binary Search',
   category: 'binary-search',
-  path: '/algorithms/binary-search',
   description: 'Given a sorted array of integers and a target, return the index of the target using binary search. Return -1 if not found. Must run in O(log n).',
   metaphor: 'Picture a row of sealed lockers numbered in order. Two walls (L and R) mark the active range. Each round you crack open the middle locker — if it holds the target, you\'re done. If the number is too small, the left wall leaps past it. Too large, the right wall jumps back. The walls squeeze inward until they meet the answer or collide.',
   tags: ['binary-search', 'array'],

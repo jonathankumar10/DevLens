@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'database-replication',
-  type:        'concept',
-  title:       'Database Replication',
-  category:    'databases',
-  tags:        ['replication', 'primary-replica', 'leader-follower', 'read-replica', 'synchronous', 'asynchronous', 'failover', 'high-availability'],
-  description: 'Replication maintains identical copies of a database on multiple servers. It serves two goals: fault tolerance — if the primary fails, a replica promotes and the system keeps running — and read scaling — route read-heavy traffic to replicas, reducing load on the primary writer. The key trade-off is between synchronous replication (zero data loss, higher latency) and asynchronous (lower latency, small risk of data loss on crash).',
+  ...meta,
   metaphor:    "A document simultaneously auto-saving to multiple cloud accounts. You write to one laptop, but copies appear in two other accounts almost instantly. If your laptop is stolen, you switch to a replica without losing anything. If both accounts sync simultaneously but see a conflict, you need a policy for which version wins — that's the multi-primary replication problem.",
-  path:        '/system-design/database-replication',
   howItWorks: [
     'Primary-replica (leader-follower) replication: all writes go to a single primary. The primary writes a change to its write-ahead log (WAL) and streams that log to one or more replicas. Each replica applies the same operations in the same order.',
     'Synchronous replication: the write is not acknowledged to the client until at least one replica confirms it received and applied the data. Guarantees zero data loss on primary failure — but every write waits for a network round trip to the replica.',

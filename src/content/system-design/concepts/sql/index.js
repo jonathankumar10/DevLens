@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'sql',
-  type:        'concept',
-  title:       'SQL',
-  category:    'storage',
-  tags:        ['sql', 'databases', 'acid', 'indexing', 'transactions', 'relational', 'b-tree'],
-  description: 'Relational databases and SQL — ACID transactions, B-tree indexes, normalisation, and when SQL is the right persistence layer for your system.',
+  ...meta,
   metaphor:    'A perfectly organised filing cabinet — every document has a defined type (schema), cross-referenced with other files (foreign keys). With the right index you can find any document in milliseconds across millions of files.',
-  path:        '/system-design/sql',
   howItWorks: [
     'The client connects to the database engine using a connection pool (e.g., PgBouncer). Each connection can issue SQL queries independently.',
     'The query planner receives SQL, parses it into an AST, and generates an execution plan — choosing between index scans, full-table scans, and join strategies based on table statistics.',

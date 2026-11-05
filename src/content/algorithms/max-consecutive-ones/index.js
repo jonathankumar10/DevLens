@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Sliding Window',
   category: 'arrays-hashing',
-  path: '/algorithms/max-consecutive-ones',
   description: 'Given a binary array nums, return the maximum number of consecutive 1s in the array.',
   metaphor: 'We picture the array as a row of floor tiles — lit (1) or dark (0). Walking left to right we count how many lit tiles we cross in a single unbroken run; the moment we step on a dark tile the run resets to zero, but we keep a memory of the longest run seen so far.',
   tags: ['array', 'sliding-window'],

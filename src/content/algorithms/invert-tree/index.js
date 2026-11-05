@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Tree DFS',
   category: 'trees',
-  path: '/algorithms/invert-tree',
   description: 'Given the root of a binary tree, invert the tree — mirror it left-to-right — and return its root.',
   metaphor: 'Hold the tree up to a mirror. Recursively, each node first lets both of its subtrees mirror themselves, then simply swaps its own left and right pointers. When the swaps bubble all the way up to the root, the whole tree is flipped.',
   tags: ['tree', 'dfs', 'recursion'],

@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'dns',
-  type:        'concept',
-  title:       'DNS Resolution',
-  category:    'networking',
-  tags:        ['dns', 'networking', 'http', 'internet', 'ip'],
-  description: 'How a domain name like google.com resolves to an IP address. DNS is the distributed phonebook of the internet — every HTTP request starts here.',
+  ...meta,
   metaphor:    'A phonebook lookup chain: your browser asks its local resolver, which fans out to root, TLD, then authoritative servers to find the final IP.',
-  path:        '/system-design/dns',
   howItWorks: [
     'The browser checks its own short-lived in-memory cache, then the OS checks /etc/hosts and its resolver cache. Both miss on a first visit, so the query continues out to the network.',
     'The browser sends the query to a recursive resolver — typically assigned by your ISP, or a public one like 8.8.8.8 (Google) or 1.1.1.1 (Cloudflare). The resolver does all the remaining work on the browser\'s behalf.',

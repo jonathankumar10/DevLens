@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Hash Map',
   category: 'arrays-hashing',
-  path: '/algorithms/valid-anagram',
   description: 'Given two strings s and t, return true if t is an anagram of s — that is, t uses exactly the same letters as s, the same number of times — and false otherwise.',
   metaphor: 'One tally sheet, two hands. As we walk both strings together, every letter from s adds a tick and every letter from t erases one. If the strings are anagrams, every tick gets erased and the sheet ends up all zeros.',
   tags: ['hash-map', 'string', 'counting'],

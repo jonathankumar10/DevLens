@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'database-sharding',
-  type:        'concept',
-  title:       'Database Sharding',
-  category:    'databases',
-  tags:        ['sharding', 'partitioning', 'horizontal-scaling', 'shard-key', 'hotspot', 'resharding', 'consistent-hashing'],
-  description: 'Sharding horizontally partitions a database — each shard holds a distinct subset of rows, and together they hold the complete dataset. Where replication duplicates data for fault tolerance and read scaling, sharding distributes data to break through single-machine storage and write throughput limits. The defining challenge is choosing a shard key that distributes data evenly while keeping related data co-located.',
+  ...meta,
   metaphor:    "A library split across multiple buildings by subject. A-G books are in building 1, H-P in building 2, Q-Z in building 3. You know exactly which building to visit based on the first letter — no need to search all three. Adding more books to the H-P section requires only expanding building 2. But if the S section becomes unexpectedly popular, building 3 becomes a hotspot while 1 and 2 are underutilized.",
-  path:        '/system-design/database-sharding',
   howItWorks: [
     'A shard key is chosen — typically user_id, tenant_id, or geographic region — that determines which shard a given row belongs to. The shard key must be present in every write and in the WHERE clause of most queries.',
     'Range-based sharding assigns a contiguous range of shard key values to each shard (user_id 1–1M → shard 1, 1M–2M → shard 2). Simple routing logic, efficient range scans — but if one range contains power users with disproportionate activity, it becomes a hotspot.',

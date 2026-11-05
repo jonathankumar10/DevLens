@@ -8,8 +8,9 @@ AI mock system-design interviewer run on Claude through Firebase Cloud
 Functions.
 
 > The project used to be called **AlgoViz**. That name still shows up in a few
-> places (the npm package name `dsa-visualizer`, the localStorage key
-> `algviz-uid`, the Firebase project id and the chatbot's system prompt).
+> places: the npm package name `dsa-visualizer`, the localStorage key
+> `algviz-uid` (kept so returning visitors keep their id) and the Firebase
+> project id.
 
 ---
 
@@ -43,7 +44,7 @@ Functions.
 | **OOD** | `/ood/:id` | GoF design patterns (11 with animations) and OOD interview questions |
 | **AI** | `/ai/:id` | History, ML, LLMs, workflows, agents, production, plus live-coding interview guides |
 | **Tech Stack** | `/tech-stack/:id` | How the tools used across projects work, plus key learnings |
-| **Chatbot** | every page | A floating assistant (Claude Haiku) that answers DSA and system design questions |
+| **Chatbot** | every page | A floating assistant (Claude Haiku) that answers questions about any topic on the site and links to the right page |
 
 `/algorithms` and `/patterns` share one index page (`DSAIndex`) with two tabs.
 The navbar shows them as a single **DSA** entry.
@@ -59,8 +60,8 @@ The navbar shows them as a single **DSA** entry.
 | Styling | Tailwind CSS 4 (via `@tailwindcss/vite`) |
 | Animation | Framer Motion, plus Three.js / React Three Fiber for 3D scenes (split into their own `three-vendor` chunk) |
 | Speech | Browser `speechSynthesis` for opt-in narration of steps |
-| Backend | Firebase Cloud Functions v2 (Node 20), Firestore (rate limits only) |
-| AI | Anthropic SDK: Claude Haiku (chatbot), Claude Sonnet (mock interviewer) |
+| Backend | Firebase Cloud Functions v2 (Node 22), Firestore (rate limits and interview sessions) |
+| AI | Anthropic SDK: Claude Haiku 5.5 (chatbot), Claude Sonnet 5.5 (mock interviewer), with prompt caching |
 | Hosting | Netlify (static SPA) + Firebase (functions) |
 
 There is no test suite. Correctness checks are `npm run lint`,
@@ -101,11 +102,13 @@ Only the chatbot and the mock interview need it.
 ```bash
 cd functions && npm install
 firebase functions:secrets:set ANTHROPIC_API_KEY   # one-time
-firebase deploy --only functions
+npm run functions:data                             # (from the repo root) regenerate functions/generated/
+firebase deploy --only functions                   # runs functions:data first (predeploy hook)
 ```
 
-The Firebase project is set in `.firebaserc`. The runtime (`nodejs20`) is set
-in `firebase.json`.
+The Firebase project is set in `.firebaserc`. The runtime (`nodejs22`) and the
+predeploy hook are set in `firebase.json`. `cd functions && npm run serve`
+regenerates the data and starts the local emulator.
 
 ---
 
@@ -117,8 +120,11 @@ DevLens/
 ├── vite.config.js             # React + Tailwind plugins, three.js manual chunk
 ├── netlify.toml               # build command + SPA fallback redirect
 ├── firebase.json / .firebaserc
+├── scripts/
+│   └── build-functions-data.mjs  # registries → functions/generated/*.json
 ├── functions/
-│   └── index.js               # Cloud Functions: chat + interviewChat
+│   ├── index.js               # Cloud Functions: chat + interviewChat
+│   └── generated/             # catalog.json (chatbot topics), rubrics.json (interviews) — generated, don't edit
 └── src/
     ├── main.jsx               # ENTRY POINT: mounts <App/>
     ├── App.jsx                # <RouterProvider router={router}/>
@@ -135,10 +141,12 @@ DevLens/
     │   ├── algorithms/<slug>/     index.js, steps.js, Visualizer.jsx
     │   ├── patterns/<slug>/       Animation.jsx
     │   ├── system-design/
-    │   │   ├── concepts/<slug>/   index.js, steps.js, Diagram.jsx
-    │   │   └── designs/<slug>/    index.js, steps.js, Diagram.jsx[, ConceptIllustration.jsx]
+    │   │   ├── concepts/<slug>/   meta.js, index.js, steps.js, Diagram.jsx
+    │   │   └── designs/<slug>/    meta.js, index.js, steps.js, Diagram.jsx[, ConceptIllustration.jsx]
     │   ├── ood/<slug>/            Animation.jsx
-    │   └── ai/<slug>/             Animation.jsx
+    │   └── ai/
+    │       ├── aiContent.js       # long-form AI content, loaded on demand
+    │       └── <slug>/            Animation.jsx
     ├── hooks/                 # useStepRunner, useTtsRunner, useSpeech, useZoomPan, usePatternAnimation
     └── lib/                   # firebase, userId, lazyGlob, findWithNeighbors, markdown, motion, ...
 ```
@@ -210,16 +218,28 @@ routing works. `netlify.toml` does this with a `/* → /index.html 200` rewrite.
 
 Everything the UI lists comes from `src/constants/`. Pages never scan the
 filesystem for metadata. They read a registry, and use globs only to find
-visual components.
+visual components (and, for system design, each topic's full content).
+
+The two largest sections keep their registries **metadata-only**, so pages
+that only list items (the home page, index pages, sidebars, the roadmap)
+stay small. The long-form content is fetched when a detail page opens:
+
+| Section | Always loaded | Loaded on the detail page |
+|---|---|---|
+| System design | `<slug>/meta.js`: id, type, title, category, tags, description | `<slug>/index.js` via `loadSystemDesignItem(item)` (one chunk per topic) |
+| AI | `AI_ITEMS` in `aiRegistry.js`: id, category, title, color, tagline, duration | `content/ai/aiContent.js` via `loadAiContent()` (one chunk for all AI topics) |
+
+`path` is never stored in content files. The registries add it from the id
+(`/algorithms/${id}`, `/system-design/${id}`).
 
 | Registry | What it holds | Where data lives |
 |---|---|---|
-| `algorithmRegistry.js` | `ALGORITHMS`, `CATEGORY_LABELS`, `DIFFICULTY_COLOR` | Imports each `content/algorithms/<slug>/index.js` |
+| `algorithmRegistry.js` | `ALGORITHMS`, `CATEGORY_LABELS`, `DIFFICULTY_COLOR` | Imports each `content/algorithms/<slug>/index.js`; adds `path` |
 | `patternsRegistry.js` | `PATTERNS`, `PATTERN_COLORS` | Inline; links to algorithms through `algorithmIds` |
-| `systemDesignRegistry.js` | `SYSTEM_DESIGN`, `TYPE_LABEL`, `TYPE_COLOR` | Imports each concept/design `index.js` |
+| `systemDesignRegistry.js` | `SYSTEM_DESIGN`, `TYPE_LABEL`, `TYPE_COLOR`, `loadSystemDesignItem` | Imports each concept/design `meta.js`; adds `path`; lazy-loads `index.js` |
 | `systemDesignRoadmap.js` | `ROADMAP_STAGES`, `JOURNEY_STEPS`, `DESIGN_TIERS`, `WHY_BY_ID`, `ROADMAP_ITEMS`, `ROADMAP_SIDEBAR_GROUPS` | Learning order and a "why this exists" note for every SD item |
 | `oodRegistry.js` | `OOD_PATTERNS`, `OOD_QUESTIONS`, `OOD_ITEMS`, ... | Inline |
-| `aiRegistry.js` | `AI_ITEMS`, `AI_CATEGORY_LABELS`, `LIVE_CODING_AI_GUIDE` | Inline |
+| `aiRegistry.js` | `AI_ITEMS`, `AI_CATEGORY_LABELS`, `loadAiContent` | Index-level fields inline; content in `content/ai/aiContent.js` |
 | `techStackRegistry.js` | `TECH_STACK_ITEMS`, ... | Inline |
 | `palette.js` | `PALETTE`, `DIFFICULTY_COLOR` | Shared colour tokens (the `*_COLORS` exports are aliases) |
 | `sections.js` | `NAV_SECTIONS` | Section labels/paths shared by the navbar and breadcrumbs |
@@ -245,6 +265,21 @@ URL /<section>/:id
         └─ <InfoPanel/> <NumberedList/> <BulletList/> ...   text from the registry item
 ```
 
+**System design and AI pages** add one step. The registry item is metadata
+only, so the page renders the layout straight away and loads the body inside
+`<Suspense fallback={<DetailLoading/>}>`:
+
+```
+SystemDesignPage / AIPage            (sidebar, breadcrumb, prev/next render immediately)
+  └─ <Suspense fallback={<DetailLoading/>}>
+       └─ SystemDesignDetail / AIDetailBody
+            item = use(loadSystemDesignItem(meta))          // or use(loadAiContent())
+            renders hero, diagram/animation, panels, mock interview
+```
+
+The load functions cache their promise per item, which React's `use()` needs
+(a stable promise across re-renders).
+
 Shared building blocks (in `src/components/detail/`):
 
 - `DetailPageLayout`: sidebar, breadcrumb, page-enter animation (`lib/motion` → `PAGE_ENTER`) and prev/next links (`AdjacentNav`).
@@ -257,7 +292,7 @@ Section-specific behaviour:
 - **AIPage** shows concept items with an optional `Animation.jsx`. Key Takeaways
   goes in the right column when there's no animation, and below the grid when
   there is one. `live-coding` items render through `LiveCodingDetail` using
-  `LIVE_CODING_AI_GUIDE`.
+  `LIVE_CODING_AI_GUIDE` (from `aiContent.js`).
 
 ### 5. Algorithm visualizers: the step pipeline
 
@@ -324,11 +359,10 @@ URL Shortener):
 SystemDesignPage ─► <MockInterview design={item}/>
   Start:
     sessionId = crypto.randomUUID()
-    rubric    = buildRubric(design)   // title, requirements, dataModel, apiDesign,
-                                      // hldFlows, deepDive, levelExpectations, keyPoints
-    callInterviewChat({ uid, sessionId, rubric, messages: [kickoff], endRequested:false })
+    callInterviewChat({ uid, sessionId, designId: design.id, messages: [kickoff], endRequested:false })
   Each turn:
-    append user message → resend FULL history + rubric (the function is stateless)
+    append user message → resend the full history + designId
+    (the server looks up the rubric by designId and tracks the session in Firestore)
   End:
     callInterviewChat({ ..., endRequested: true })
     reply starts with "**Mock Interview Assessment**" → UI marks the session ended
@@ -348,42 +382,68 @@ key only exists server-side as a Firebase secret.
 `crypto.randomUUID()` the first time and stores it in localStorage under
 `algviz-uid`. It is anonymous, has no login, and is used only for rate limiting.
 
+**Generated data** (`functions/generated/`). The functions package can't
+import the frontend registries, so `scripts/build-functions-data.mjs` loads
+them through Vite's SSR loader and writes two JSON files:
+
+- `catalog.json`: every topic on the site (section, title, path, label). The chatbot prompt is built from it.
+- `rubrics.json`: the interview rubric for each design with `interviewEnabled: true`, keyed by design id.
+
+It runs as a `predeploy` hook in `firebase.json`, so a deploy always matches
+the site. Run it by hand with `npm run functions:data`.
+
 **Server side** (`functions/index.js`). Both functions are `onCall` HTTPS
-callables with `secrets: [ANTHROPIC_API_KEY]` and `cors: true`.
+callables with `secrets: [ANTHROPIC_API_KEY]` and `cors: true`. They share
+three helpers:
+
+| Helper | What it does |
+|---|---|
+| `checkDailyLimit({ collection, field, uid, limit })` | Per-uid daily counter, read and incremented in one **Firestore transaction** so parallel requests can't both get under the limit. Lets requests through if Firestore is down. |
+| `sanitise(messages, maxTurns?)` | Keeps only `user`/`assistant` turns with string content, trims each to 2,000 chars, and optionally keeps only the last N turns. |
+| `askClaude({ label, model, maxTokens, system, messages, fallback })` | One Claude call: `effort: 'low'`, automatic prompt caching (`cache_control`), and optional server-side refusal fallback. Checks `stop_reason` for a refusal, reads only the `text` blocks (current models can return `thinking` blocks first), and maps everything to `{ reply }` or `{ error }`. |
 
 #### `chat` (the floating chatbot)
 
 ```
 ChatBot.jsx ── callChat({ messages, uid }) ──► chat
   1. Validate uid (string, ≤ 64 chars) and messages
-  2. Rate limit: Firestore rateLimits/{uid} = { count, date }
+  2. checkDailyLimit: Firestore rateLimits/{uid} = { count, date }
        same day and count ≥ 10 → { error: 'RATE_LIMITED' }
        otherwise increment (resets on a new UTC day)
-       Firestore error → fail open (request continues)
-  3. Sanitise: last 20 messages, role ∈ {user, assistant}, content ≤ 2000 chars
-  4. anthropic.messages.create({ model: Haiku, max_tokens: 400, system: SYSTEM_PROMPT })
+  3. sanitise(messages, 20)
+  4. askClaude({ model: 'claude-haiku-5-5', maxTokens: 4000, system: SYSTEM_PROMPT })
   5. return { reply } or { error: 'API_ERROR' }
 ```
 
-`SYSTEM_PROMPT` lists the topics on the site and tells the model to point
-users to the right page, keep answers to 3–5 sentences, and decline off-topic
-questions.
+`SYSTEM_PROMPT` is built from `generated/catalog.json`, so it lists every
+topic on the site. It tells the model to link users to the right page, keep
+answers to 3–5 sentences, and decline off-topic questions.
 
 #### `interviewChat` (the mock interviewer)
 
 ```
-MockInterview.jsx ── callInterviewChat({ uid, sessionId, rubric, messages, endRequested }) ──► interviewChat
-  1. Validate uid, sessionId, rubric; messages must be 1–24 long
+MockInterview.jsx ── callInterviewChat({ uid, sessionId, designId, messages, endRequested }) ──► interviewChat
+  1. Validate uid and sessionId; messages must be 1–24 long
        (> 24 → { error: 'SESSION_TURN_LIMIT' })
-  2. If this is a session start (exactly one user message):
-       Firestore interviewRateLimits/{uid} = { sessionsStarted, date }
-       ≥ 2 sessions today → { error: 'RATE_LIMITED' }   (fail open on Firestore error)
-  3. Sanitise messages (role filter, 2000-char cap)
-  4. If endRequested → append a "[SYSTEM: ...end the interview...]" user turn
-  5. anthropic.messages.create({ model: Sonnet, max_tokens: 1024,
-                                 system: interviewSystemPrompt(rubric) })
-  6. return { reply } or { error: 'API_ERROR' }
+  2. rubric = RUBRICS[designId] from generated/rubrics.json
+       (unknown design → { error: 'INVALID_MESSAGES' }; the client never sends a rubric)
+  3. claimInterviewTurn — one Firestore transaction over interviewSessions/{sessionId}:
+       new sessionId  → counts against interviewRateLimits/{uid} (2 sessions/day → 'RATE_LIMITED'),
+                        then creates { uid, designId, calls: 1, createdAt, expiresAt }
+       existing       → must belong to the same uid + designId (else 'INVALID_MESSAGES');
+                        calls ≥ 14 → 'SESSION_TURN_LIMIT'; otherwise calls + 1
+  4. sanitise(messages)
+  5. If endRequested → append a "[SYSTEM: ...end the interview...]" user turn
+  6. askClaude({ model: 'claude-sonnet-5-5', maxTokens: 8000,
+                 system: interviewSystemPrompt(rubric), fallback: true })
+  7. return { reply } or { error: 'API_ERROR' }
 ```
+
+Sessions are counted when Firestore first sees a `sessionId`, so faking a
+longer history can't skip the daily limit. Turns are counted on the server,
+so trimming the history can't make a session run forever. `expiresAt` is
+there for a Firestore TTL policy, which you can turn on in the console to
+delete old session docs.
 
 `interviewSystemPrompt(rubric)` takes the role of a senior staff interviewer.
 It walks through five stages (requirements → data model → API → HLD →
@@ -396,10 +456,10 @@ Level).
 | Code | Meaning |
 |---|---|
 | `INVALID_UID` | Missing or oversized uid |
-| `INVALID_MESSAGES` | Bad message list, sessionId or rubric |
+| `INVALID_MESSAGES` | Bad message list or sessionId, unknown designId, or a session that belongs to another user |
 | `RATE_LIMITED` | Daily limit hit (10 chat messages, or 2 interview sessions) |
-| `SESSION_TURN_LIMIT` | Interview went past 24 messages |
-| `API_ERROR` | The Anthropic call failed |
+| `SESSION_TURN_LIMIT` | Interview went past 24 messages or 14 calls |
+| `API_ERROR` | The Anthropic call failed, the model declined (refusal), or it returned no text |
 
 ---
 
@@ -407,13 +467,15 @@ Level).
 
 | To add... | Do this |
 |---|---|
-| **Algorithm** | Create `src/content/algorithms/<slug>/` with `index.js` (metadata + `solution.approaches`), `steps.js` (`build<Name>Steps`) and `Visualizer.jsx` (uses `useStepRunner`, calls `onStepChange`). Import `index.js` in `algorithmRegistry.js`. Add the id to the matching pattern's `algorithmIds` in `patternsRegistry.js`. |
-| **System design concept/design** | Create `src/content/system-design/<concepts\|designs>/<slug>/` with `index.js`, `steps.js` and `Diagram.jsx`. Register it in `systemDesignRegistry.js`. **Also place it in `systemDesignRoadmap.js`** (a journey step for a concept, a `DESIGN_TIERS` entry for a design), or the dev assert will fire. Set `interviewEnabled: true` on a design to turn on the mock interview. |
+| **Algorithm** | Create `src/content/algorithms/<slug>/` with `index.js` (metadata + `solution.approaches`; no `path`, the registry adds it), `steps.js` (`build<Name>Steps`) and `Visualizer.jsx` (uses `useStepRunner`, calls `onStepChange`). Import `index.js` in `algorithmRegistry.js`. Add the id to the matching pattern's `algorithmIds` in `patternsRegistry.js`. |
+| **System design concept/design** | Create `src/content/system-design/<concepts\|designs>/<slug>/` with `meta.js` (id, type, title, category, tags, description), `index.js` (`import meta from './meta.js'`, then `export default { ...meta, ...rest }`), `steps.js` and `Diagram.jsx`. Import its `meta.js` in `systemDesignRegistry.js`. **Also place it in `systemDesignRoadmap.js`** (a journey step for a concept, a `DESIGN_TIERS` entry for a design), or the dev assert will fire. Set `interviewEnabled: true` on a design to turn on the mock interview. |
 | **Pattern** | Add metadata inline in `patternsRegistry.js`; optionally add `src/content/patterns/<slug>/Animation.jsx`. |
-| **OOD / AI / Tech Stack item** | Add an entry inline in the registry; optionally add `src/content/<ood\|ai>/<slug>/Animation.jsx`. |
+| **AI item** | Add the index fields (id, category, title, color, tagline, duration) to `AI_ITEMS` in `aiRegistry.js`, and the rest under the same id in `AI_CONTENT` in `src/content/ai/aiContent.js`. Optionally add `src/content/ai/<slug>/Animation.jsx`. |
+| **OOD / Tech Stack item** | Add an entry inline in the registry; optionally add `src/content/ood/<slug>/Animation.jsx`. |
 
 You never need to import visual components by hand. The `import.meta.glob`
-calls in the detail pages pick them up.
+calls in the detail pages pick them up. After adding or renaming topics, the
+next functions deploy regenerates the chatbot catalog automatically.
 
 ---
 
@@ -422,28 +484,28 @@ calls in the detail pages pick them up.
 - **Frontend:** Netlify runs `npm run build` and publishes `dist/`, with the
   SPA fallback in `netlify.toml`. Set the `VITE_FIREBASE_*` variables in the
   Netlify environment.
-- **Functions:** `firebase deploy --only functions` (Node 20). The Anthropic
-  key comes from `firebase functions:secrets:set ANTHROPIC_API_KEY`.
+- **Functions:** `firebase deploy --only functions` (Node 22). The predeploy
+  hook regenerates `functions/generated/`. The Anthropic key comes from
+  `firebase functions:secrets:set ANTHROPIC_API_KEY`.
+- **Deploy both together** when the interview API changes. The current client
+  sends `designId` and the current function needs it, so an old client
+  talking to a new function (or the other way round) gets `INVALID_MESSAGES`.
 
 ---
 
 ## Known issues and next steps
 
-- **The chatbot prompt is out of date.** `SYSTEM_PROMPT` in `functions/index.js`
-  lists 15 algorithms and 2 system design topics, but the site has 37 and 56.
-  Since the bot is told never to claim a page exists unless it's listed, it
-  under-reports the site's content. The list should be generated from the
-  registries.
-- **The interview rate limit can be skipped.** It only runs when the request
-  has exactly one message, which the client controls.
-- **Rate limits are tied to a client-generated id.** Clearing localStorage
-  resets them. The checks are read-then-write (not transactions), and they fail
-  open. Firebase App Check or anonymous Auth, Firestore transactions and a
-  global daily cap would make them much harder to abuse.
-- **The model ids are older versions** (`claude-sonnet-4-6`,
-  `claude-haiku-4-5-20251001`) and could be updated to current Claude models.
-- **Large chunks.** `systemDesignRegistry` (about 290 kB) and `aiRegistry`
-  (about 200 kB) each load as one chunk. Splitting them per item would make
-  first loads lighter.
+- **Rate limits are still tied to a client-generated id.** Clearing
+  localStorage gives a new `uid` and resets the daily limits, and both limits
+  let requests through when Firestore is unavailable. Firebase App Check or
+  anonymous Auth (to trust the uid) plus a global daily cap would close this.
+- **Turn on a Firestore TTL policy** on `interviewSessions.expiresAt` so old
+  session docs are deleted.
+- **`algorithmRegistry` (about 80 kB) still loads in full** on the home page
+  and the DSA index, because it includes every solution's code. It could be
+  split into metadata and lazily loaded content the same way as system design.
+- **Effort and `max_tokens` haven't been tuned.** Both functions run at
+  `effort: 'low'`. Compare reply quality and latency on real conversations
+  before raising it.
 - `SystemDesignPage.jsx` is about 1,650 lines and would be easier to work with
   if split into smaller components.

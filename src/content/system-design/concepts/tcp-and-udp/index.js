@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'tcp-and-udp',
-  type:        'concept',
-  title:       'TCP and UDP',
-  category:    'networking',
-  tags:        ['tcp', 'udp', 'transport', 'reliability', 'latency', 'handshake', 'streaming'],
-  description: 'The two transport-layer protocols powering almost all internet communication — TCP for reliable ordered delivery, UDP for fast best-effort transmission.',
+  ...meta,
   metaphor:    'TCP is a phone call — both sides acknowledge, nothing is lost, the conversation is ordered. UDP is a radio broadcast — fast and one-way, some listeners might miss a word but nobody waits to confirm.',
-  path:        '/system-design/tcp-and-udp',
   howItWorks: [
     'TCP establishes a connection via the 3-way handshake: SYN (sender), SYN-ACK (receiver), ACK (sender). No application data flows until the handshake completes — this adds 1 RTT of latency before the first byte.',
     'TCP assigns sequence numbers to every byte. The receiver ACKs received bytes and buffers out-of-order segments, delivering them to the application in order. Lost segments are retransmitted on timeout.',

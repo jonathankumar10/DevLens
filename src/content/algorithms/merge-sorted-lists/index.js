@@ -4,7 +4,6 @@ export default {
   difficulty: 'Easy',
   pattern: 'Linked List',
   category: 'linked-list',
-  path: '/algorithms/merge-sorted-lists',
   description:
     'Merge two sorted linked lists into one sorted list and return the head of the merged list.',
   metaphor:

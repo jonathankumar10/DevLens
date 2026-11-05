@@ -4,7 +4,6 @@ export default {
   difficulty: 'Medium',
   pattern: 'Binary Search',
   category: 'binary-search',
-  path: '/algorithms/search-matrix',
   description: 'Given an m×n matrix where each row is sorted and the first integer of each row is greater than the last of the previous row, determine if target exists in the matrix. Must run in O(log(m×n)).',
   metaphor: 'Imagine the matrix is a ribbon of paper folded into rows. Unfolded, it\'s one long sorted strip. Binary search places a finger at the midpoint of the strip, then maps that position back to the folded grid to read the value — halving the remaining ribbon each time.',
   tags: ['binary-search', '2d-array'],

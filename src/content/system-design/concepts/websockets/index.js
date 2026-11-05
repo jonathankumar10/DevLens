@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'websockets',
-  type:        'concept',
-  title:       'WebSockets',
-  category:    'apis',
-  tags:        ['websockets', 'real-time', 'full-duplex', 'tcp', 'push', 'streaming', 'bidirectional'],
-  description: 'A persistent full-duplex communication channel over a single TCP connection — enabling real-time bidirectional data flow between client and server without polling.',
+  ...meta,
   metaphor:    'A phone call instead of sending letters. Both parties stay connected and can speak simultaneously at any moment — rather than one person mailing a letter and waiting for a reply.',
-  path:        '/system-design/websockets',
   howItWorks: [
     'The client sends a normal HTTP GET with Upgrade: websocket and Sec-WebSocket-Key headers. The server responds with HTTP 101 Switching Protocols. The underlying TCP connection is now a WebSocket channel.',
     'After the upgrade, both sides communicate with WebSocket frames — lightweight binary envelopes with a 2-byte minimum header (vs HTTP\'s ~400-byte header per request). Text or binary payloads are both supported.',

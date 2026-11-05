@@ -1,12 +1,8 @@
+import meta from './meta.js'
+
 export default {
-  id:          'availability-patterns',
-  type:        'concept',
-  title:       'Availability Patterns',
-  category:    'reliability',
-  tags:        ['availability', 'failover', 'active-passive', 'active-active', 'circuit-breaker', 'retry', 'graceful-degradation', 'health-check'],
-  description: 'Availability patterns are the architectural strategies that keep a system responding to users despite hardware failures, software crashes, and network partitions. The core mechanisms are redundancy (duplicate components), automated failover (promotion when a primary fails), circuit breaking (stopping cascading failures), and graceful degradation (serving reduced functionality rather than returning errors).',
+  ...meta,
   metaphor:    "An airline's contingency playbook. If the primary pilot is incapacitated, the co-pilot takes over immediately with no passenger impact (active-passive failover). If one runway is closed, flights divert to another gate (redundant routes). If weather makes landing unsafe, the plane enters a holding pattern rather than attempting a dangerous approach (circuit breaker). If the in-flight entertainment system fails, the flight still operates — just without movies (graceful degradation).",
-  path:        '/system-design/availability-patterns',
   howItWorks: [
     'Active-passive failover: a primary node handles all traffic while a standby stays synchronized and ready. Health checks detect primary failure and promote the standby, updating DNS or load balancer config. Failover typically takes 30–120 seconds — users may see a brief outage window.',
     'Active-active: multiple nodes all serve live traffic simultaneously. When one fails, the load balancer removes it and remaining nodes absorb its traffic — no promotion delay. Requires the system to handle concurrent writes from multiple nodes, which introduces consistency complexity.',
