@@ -9,11 +9,13 @@ import DetailPageLayout from '../components/detail/DetailPageLayout'
 import DetailLoading from '../components/detail/DetailLoading'
 import { findWithNeighbors } from '../lib/findWithNeighbors'
 import { lazyGlob } from '../lib/lazyGlob'
+import { lazySimulators } from '../lib/lazySimulators'
 import { SectionLabel } from '../components/detail/Panels'
 
 // Optional per-item visuals: content/system-design/<concepts|designs>/<id>/{Diagram,ConceptIllustration}.jsx
 const DIAGRAMS              = lazyGlob(import.meta.glob('../content/system-design/**/Diagram.jsx'))
 const CONCEPT_ILLUSTRATIONS = lazyGlob(import.meta.glob('../content/system-design/**/ConceptIllustration.jsx'))
+const SIMULATORS            = lazySimulators(import.meta.glob('../content/system-design/**/scenario.js'))
 
 // ── Component animations ──────────────────────────────────────────────────────
 
@@ -788,7 +790,7 @@ function ComponentCard({ comp, index }) {
 
 // ── Requirements section ──────────────────────────────────────────────────────
 
-const REQ_COLUMNS = [
+const REQ_SECTIONS = [
   { key: 'functional',    label: 'Functional',      accent: 'text-violet-400', dot: 'bg-violet-400',  border: 'border-violet-500/20' },
   { key: 'nonFunctional', label: 'Non-Functional',  accent: 'text-sky-400',    dot: 'bg-sky-400',     border: 'border-sky-500/20'    },
   { key: 'scale',         label: 'Scale Estimates', accent: 'text-emerald-400',dot: 'bg-emerald-400', border: 'border-emerald-500/20' },
@@ -799,12 +801,12 @@ function RequirementsSection({ requirements }) {
   return (
     <div className="space-y-3">
       <SectionLabel className="text-slate-500 px-1">Requirements</SectionLabel>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {REQ_COLUMNS.map(({ key, label, accent, dot, border }) =>
+      <div className="space-y-3">
+        {REQ_SECTIONS.map(({ key, label, accent, dot, border }) =>
           requirements[key]?.length > 0 && (
-            <div key={key} className={`rounded-xl border ${border} bg-white/[0.02] px-5 py-4 space-y-3`}>
+            <div key={key} className={`grid gap-3 rounded-xl border ${border} bg-white/[0.02] px-5 py-4`}>
               <SectionLabel className={accent}>{label}</SectionLabel>
-              <ul className="space-y-2.5">
+              <ul className="grid gap-y-2.5">
                 {requirements[key].map((r, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-slate-300 leading-relaxed">
                     <span className={`mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full ${dot}`} />
@@ -868,6 +870,7 @@ const METHOD_COLOR = {
   PUT:    'bg-amber-500/15 text-amber-300 border border-amber-500/30',
   PATCH:  'bg-orange-500/15 text-orange-300 border border-orange-500/30',
   DELETE: 'bg-red-500/15 text-red-300 border border-red-500/30',
+  WS:     'bg-violet-500/15 text-violet-300 border border-violet-500/30',
 }
 
 function ApiDesignSection({ apiDesign }) {
@@ -1495,6 +1498,7 @@ function SystemDesignDetail({ meta }) {
   const folder = `../content/system-design/${item.type}s/${item.id}`
   const ConceptIllustration = CONCEPT_ILLUSTRATIONS[`${folder}/ConceptIllustration.jsx`]
   const Diagram             = DIAGRAMS[`${folder}/Diagram.jsx`]
+  const Simulator           = SIMULATORS[`${folder}/scenario.js`]
 
   return (
     <>
@@ -1508,6 +1512,15 @@ function SystemDesignDetail({ meta }) {
 
       {/* Why this exists — where the item sits in the roadmap */}
       <WhyItExists why={WHY_BY_ID[item.id]} />
+
+      {Simulator && (
+        <a
+          href="#live-simulator"
+          className="inline-flex w-fit items-center gap-2 rounded-lg border border-blue-400/30 bg-blue-400/[0.07] px-3 py-1.5 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-400/15"
+        >
+          Try the live simulator <span aria-hidden="true">↓</span>
+        </a>
+      )}
 
       {/* Hero row: Overview + Mental Model */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1569,6 +1582,15 @@ function SystemDesignDetail({ meta }) {
           }
         </Suspense>
       </div>
+
+      {/* Live simulator */}
+      {Simulator && (
+        <div id="live-simulator" className="scroll-mt-20">
+          <Suspense fallback={<div className="min-h-[600px] rounded-2xl border border-white/10 bg-white/[0.02]" />}>
+            <Simulator />
+          </Suspense>
+        </div>
+      )}
 
       {/* How it works */}
       {item.howItWorks?.length > 0 && (

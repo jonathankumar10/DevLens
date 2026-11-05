@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:sim": "node --test src/lib/sim/",
     "functions:data": "node scripts/build-functions-data.mjs"
   },
   "dependencies": {

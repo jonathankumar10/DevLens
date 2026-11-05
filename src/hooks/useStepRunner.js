@@ -8,10 +8,10 @@ const BASE_INTERVAL = 900 // ms at 1×
  *
  * speed — playback multiplier (options are listed in StepControls)
  */
-export function useStepRunner(steps) {
+export function useStepRunner(steps, initialSpeed = 1) {
   const [index,   setIndex]   = useState(0)
   const [playing, setPlaying] = useState(false)
-  const [speed,   setSpeed]   = useState(1)
+  const [speed,   setSpeed]   = useState(initialSpeed)
   const intervalRef = useRef(null)
 
   const stop = useCallback(() => {

@@ -4,66 +4,70 @@
     "description": "A service that maps long URLs to short codes (like bit.ly). Handles high read traffic with caching, generates unique codes with Base62, and persists mappings to a database.",
     "requirements": {
       "functional": [
-        "Given a long URL, generate and return a unique short code (7 chars) — the CREATE operation",
-        "Visiting the short URL redirects the user to the original long URL — the READ operation",
-        "Short URLs can optionally expire after a configurable TTL",
-        "Users can optionally request a custom alias (vanity URL) instead of an auto-generated code",
-        "Track click analytics per short URL (count, referrer, country) — the UPDATE/INCREMENT operation, handled internally rather than as a public endpoint"
+        "Create: given a long URL, return a unique short link with a 7-character code",
+        "Redirect: visiting a short link sends the user to the original URL",
+        "Custom aliases: users can choose a memorable code instead of a generated one",
+        "Expiration: links can optionally expire after a set time",
+        "Deletion: owners can delete their links, which stop working immediately after",
+        "Analytics: owners can see click counts, top referrers and top countries per link"
       ],
       "nonFunctional": [
-        "Low latency: redirects must complete in milliseconds (derived from \"near real-time\" + \"efficiently\") — < 10 ms p99",
-        "High availability: 99.99% uptime, short links must never go dark (derived from \"handle high traffic\")",
-        "High durability: mappings must survive server failures (derived from \"persistent\")",
-        "Uniqueness: every short code maps to exactly one long URL, no collisions (derived from \"unique\")",
-        "Security: prevent malicious/spam links and unauthorized access to analytics (derived from \"millions of URLs\" at \"high traffic\")",
-        "Analytics lag up to a few seconds is acceptable (eventual consistency) — counts don't need to be real-time-exact"
+        "Low latency: redirects under 50 ms p99 on the server, and under 10 ms for cache hits (network time to the user not included)",
+        "High availability: 99.99% for redirects. Creating links can tolerate lower availability, because a broken link hurts far more than a brief failure to create one",
+        "Durability: a link that has been created must never be lost",
+        "Uniqueness: a code maps to exactly one URL, always",
+        "Consistency: a new link works immediately, while analytics can lag by a few seconds",
+        "Security: codes are hard to enumerate, and known malicious destinations are blocked"
       ],
       "scale": [
-        "100M DAU, 100:1 read/write ratio, ~1M new short URLs created/day",
-        "~100M redirects/day → ~1,160/sec average (~3,500/sec at 3× peak); ~12 writes/sec average",
-        "Storage: 500 bytes/row × 1M new rows/day × 5 years ≈ 1.8B rows ≈ ~915 GB",
-        "Cache hot set: top 20% of URLs serve 80% of traffic → ~5 GB in Redis"
+        "100M redirects/day ÷ 86,400 ≈ 1,160/sec average, ~3,500/sec at 3× peak",
+        "1M new links/day ≈ 12 writes/sec, a 100:1 read-to-write ratio",
+        "Storage: 1M/day × 5 years ≈ 1.8B rows × 500 bytes ≈ 915 GB",
+        "Cache: ~5M distinct links clicked per day × ~1 KB per entry with overhead ≈ 5 GB",
+        "Hit rate: only the first click per link each day misses a 24-hour cache, so ~95% hit, leaving ~175 database reads/sec at peak",
+        "Code space: 62⁷ ≈ 3.5T codes, so 5 years of links uses about 0.05% of it"
       ],
       "outOfScope": [
-        "Authentication/authorization for who can create URLs or view analytics",
-        "User-initiated expiration or deletion of URLs",
-        "Advanced analytics beyond click counts (geographic tracking, device types)"
+        "Accounts and authentication: a separate service handles these, and requests arrive with a verified user ID",
+        "Editing a link's destination after it is created",
+        "Advanced analytics such as device breakdowns and funnels",
+        "Link previews and QR codes"
       ]
     },
     "dataModel": [
       {
-        "entity": "URLMapping",
-        "note": "One row per shortened URL — primary lookup table",
+        "entity": "Link",
+        "note": "One row per short link. The code is the primary key, so a redirect is a single-key lookup",
         "fields": [
           {
-            "name": "id",
-            "type": "BIGINT",
-            "note": "PK, auto-increment — used as Base62 input"
-          },
-          {
             "name": "short_code",
-            "type": "VARCHAR(7)",
-            "note": "Unique index — fast lookup on every redirect"
+            "type": "VARCHAR(20)",
+            "note": "PK: 7 chars when generated, up to 20 for custom aliases"
           },
           {
             "name": "long_url",
             "type": "TEXT",
-            "note": "The original destination URL"
+            "note": "The original destination"
           },
           {
             "name": "user_id",
             "type": "BIGINT",
-            "note": "FK → User, nullable (anonymous links allowed)"
+            "note": "Owner, indexed so users can list their links"
           },
           {
             "name": "is_custom",
             "type": "BOOLEAN",
-            "note": "TRUE if user supplied the alias — skips the ID generator, still needs a uniqueness check"
+            "note": "TRUE if the owner chose the alias"
           },
           {
             "name": "expires_at",
             "type": "TIMESTAMP",
-            "note": "NULL = never expires — checked on read, enforced by a background cleanup job"
+            "note": "Nullable: NULL means the link never expires"
+          },
+          {
+            "name": "deleted_at",
+            "type": "TIMESTAMP",
+            "note": "Nullable: soft delete, so the code returns 410 and is never reused"
           },
           {
             "name": "created_at",
@@ -73,23 +77,34 @@
         ]
       },
       {
-        "entity": "Analytics",
-        "note": "Append-only click log — write-heavy, analytics read separately",
+        "entity": "CodeRange",
+        "note": "One small row that hands out blocks of IDs. It is updated about once every few minutes, not on every create",
         "fields": [
           {
-            "name": "id",
-            "type": "BIGINT",
-            "note": "PK"
+            "name": "name",
+            "type": "VARCHAR(20)",
+            "note": "PK: \"short_codes\""
           },
           {
+            "name": "next_value",
+            "type": "BIGINT",
+            "note": "Start of the next unallocated block"
+          }
+        ]
+      },
+      {
+        "entity": "ClickEvent",
+        "note": "Append-only, in a columnar analytics store rather than the main database",
+        "fields": [
+          {
             "name": "short_code",
-            "type": "VARCHAR(7)",
-            "note": "FK → URLMapping.short_code"
+            "type": "VARCHAR(20)",
+            "note": "Sort key with clicked_at. There is no foreign key: this store is separate"
           },
           {
             "name": "clicked_at",
             "type": "TIMESTAMP",
-            "note": "Event timestamp"
+            "note": "When the click happened"
           },
           {
             "name": "referrer",
@@ -99,7 +114,7 @@
           {
             "name": "country",
             "type": "CHAR(2)",
-            "note": "Geo-resolved from client IP"
+            "note": "Resolved from the client IP, which is not stored"
           }
         ]
       }
@@ -107,58 +122,75 @@
     "apiDesign": [
       {
         "method": "POST",
-        "path": "/api/urls/shorten",
-        "description": "Create a short URL (optionally with a custom alias)",
-        "reqBody": "{\n  \"url\": \"https://example.com/very/long/path?ref=campaign\",\n  \"ttl_days\": 30,\n  \"custom_alias\": \"my-launch\"   // optional\n}",
-        "resBody": "201 Created\n{\n  \"short_url\": \"https://short.ly/aB3xK9z\",\n  \"short_code\": \"aB3xK9z\",\n  \"expires_at\": \"2026-07-15T00:00:00Z\"\n}\n\n// 409 Conflict if custom_alias is already taken"
+        "path": "/api/urls",
+        "description": "Create a short link, optionally with a custom alias or an expiry",
+        "reqBody": "Authorization: Bearer <token>\nIdempotency-Key: 7f3c9a10-2b\n\n{\n  \"url\": \"https://example.com/very/long/path?ref=campaign\",\n  \"expires_in_days\": 30,      // optional\n  \"custom_alias\": \"my-launch\" // optional\n}",
+        "resBody": "201 Created\n{\n  \"short_url\": \"https://short.ly/aB3xK9z\",\n  \"short_code\": \"aB3xK9z\",\n  \"expires_at\": \"2026-12-15T00:00:00Z\"\n}\n\n// 409 Conflict: custom alias already taken\n// 422 Unprocessable Entity: invalid or malicious URL\n// 429 Too Many Requests: rate limit exceeded"
       },
       {
         "method": "GET",
         "path": "/{shortCode}",
-        "description": "Redirect to the original URL",
+        "description": "Redirect to the original URL. Public, and the path that handles almost all traffic",
         "reqBody": null,
-        "resBody": "302 Found\nLocation: https://example.com/very/long/path?ref=campaign\n\n// 410 Gone if the short code has expired\n// Use 301 only for permanent links where click analytics don't matter"
+        "resBody": "302 Found\nLocation: https://example.com/very/long/path?ref=campaign\n\n// 404 Not Found: the code never existed\n// 410 Gone: the link expired or was deleted"
       },
       {
         "method": "GET",
-        "path": "/api/urls/{shortCode}/stats",
-        "description": "Fetch click analytics",
-        "reqBody": "Query params:\n  ?window=7d   // 1d | 7d | 30d | all",
-        "resBody": "200 OK\n{\n  \"short_code\": \"aB3xK9z\",\n  \"clicks\": 14823,\n  \"top_referrers\": [\"twitter.com\", \"google.com\"],\n  \"top_countries\": [\"US\", \"IN\", \"GB\"]\n}"
+        "path": "/api/urls/{shortCode}/stats?window=7d",
+        "description": "Fetch a link's analytics. Owner only",
+        "reqBody": "Authorization: Bearer <token>\n\n// window: 1d | 7d | 30d | all",
+        "resBody": "200 OK\n{\n  \"short_code\": \"aB3xK9z\",\n  \"clicks\": 14823,\n  \"top_referrers\": [\"twitter.com\", \"google.com\"],\n  \"top_countries\": [\"US\", \"IN\", \"GB\"]\n}\n\n// 403 Forbidden: the caller doesn't own this link"
       },
       {
         "method": "DELETE",
         "path": "/api/urls/{shortCode}",
-        "description": "Delete a short URL (owner only)",
-        "reqBody": null,
-        "resBody": "204 No Content"
+        "description": "Delete a link. Owner only. The code then returns 410 and is never reissued",
+        "reqBody": "Authorization: Bearer <token>",
+        "resBody": "204 No Content\n\n// 403 Forbidden: the caller doesn't own this link"
       }
     ],
     "hldFlows": [
       {
-        "title": "1. URL Shortening",
-        "description": "Start with the simplest version of the product: turning a long URL into a short one. The client sends a POST request containing the long URL. The URL Shortening Service validates the input, generates a unique short code by encoding an auto-incremented ID in Base62, and persists the short_code → long_url mapping to the database before returning the short URL. If the client supplied a custom_alias instead, the service skips ID generation entirely and writes that string directly as short_code, relying on a DB uniqueness constraint to reject duplicates. No caching and no redirects yet — this stage is just the write path.",
+        "title": "1. Creating a link",
+        "description": "Start with the simplest version of the product: turn a long URL into a short one. The API Gateway authenticates the request and applies rate limits. The Shortening Service validates the URL, takes the next ID from a block it already holds in memory, shuffles it, and encodes it as a 7-character code. It writes the row to the database first, because that is the source of truth, and then warms the cache. A custom alias skips ID generation, and the primary key rejects duplicates.",
         "flow": [
           {
             "label": "Client",
             "icon": "💻",
-            "note": "POST /api/urls/shorten"
+            "note": "POST /api/urls"
           },
           {
-            "label": "URL Shortening Service",
+            "label": "API Gateway",
+            "icon": "🔀",
+            "note": "Authenticate, rate limit, route"
+          },
+          {
+            "label": "Shortening Service",
             "icon": "⚙️",
-            "note": "Validate + generate Base62 code"
+            "note": "Validate, then next ID → shuffle → Base62"
           },
-          {
-            "label": "Database",
-            "icon": "🗄️",
-            "note": "Persist short_code → long_url"
-          }
+          [
+            {
+              "label": "Code Range",
+              "icon": "🔢",
+              "note": "Hands out a new block only when one runs low"
+            },
+            {
+              "label": "Database",
+              "icon": "🗄️",
+              "note": "Write the link: source of truth"
+            },
+            {
+              "label": "Redis Cache",
+              "icon": "⚡",
+              "note": "Warm it after the database write"
+            }
+          ]
         ]
       },
       {
-        "title": "2. URL Redirection",
-        "description": "Now add the read path: following a short link back to its destination. The system handles two distinct request types — POST to shorten, GET to redirect — so an API Gateway is introduced to route each one to the right handler. On a GET, the Redirection Handler checks Redis first: a cache hit returns the redirect in under 1 ms. On a cache miss, it falls back to the database and warms the cache so the next request for that code is fast too. Before issuing the redirect, the handler also checks expires_at — an expired mapping returns 410 Gone instead.",
+        "title": "2. Following a link",
+        "description": "Redirects outnumber creates 100 to 1, so they get their own service that can scale separately. The Redirect Service checks Redis first, and about 95% of requests end there. On a miss, it reads the database and fills the cache for the next click. Before redirecting, it checks expiry and deletion, so the same check protects both paths. If Redis is down, it falls back to the database: a slower redirect beats a broken link, as long as the database can absorb the load.",
         "flow": [
           {
             "label": "Client",
@@ -168,30 +200,30 @@
           {
             "label": "API Gateway",
             "icon": "🔀",
-            "note": "Route GET → redirect handler"
+            "note": "Routes to the Redirect Service"
           },
           {
-            "label": "Request Handler",
+            "label": "Redirect Service",
             "icon": "⚙️",
-            "note": "Cache-first lookup"
+            "note": "Cache first, check expiry, return 302"
           },
           [
             {
               "label": "Redis Cache",
               "icon": "⚡",
-              "note": "Checked first — < 1 ms on hit"
+              "note": "About 95% of requests, under 1 ms"
             },
             {
               "label": "Database",
               "icon": "🗄️",
-              "note": "Fallback only on cache miss"
+              "note": "Only on a cache miss, then fills the cache"
             }
           ]
         ]
       },
       {
-        "title": "3. Link Analytics",
-        "description": "Once redirects work, the product needs to know which links get clicked. The redirect path must stay fast even as analytics gets bolted on, so the two concerns are decoupled right at the API Gateway: it fans out each request to the Redirect Handler (the user-facing path) and publishes a click event toward the Analytics pipeline without making the user wait for it. This is also why the redirect must be a 302 (temporary), not a 301 — a 301 lets browsers cache the mapping and skip the server entirely on repeat visits, so the server would never see most clicks. The click event lands on Kafka first (a fire-and-forget write, sent after the redirect response is already on its way back to the user), so the Analytics Service can consume it asynchronously: it increments Redis counters for real-time dashboards and periodically flushes those counters to a durable store for historical queries.",
+        "title": "3. Counting clicks",
+        "description": "Analytics must never be able to slow or break a redirect. So the Redirect Service sends the 302 first, then adds a click event to an in-memory buffer that is published to Kafka in batches. If Kafka is down, the buffer fills and old events are dropped: losing a few clicks is far better than losing redirects. The Analytics Service consumes the stream at its own pace, keeping live counters in Redis and durable history in ClickHouse. This is also why the redirect is a 302: a 301 lets browsers skip the server on repeat visits, and those clicks would never be counted.",
         "preFlow": [
           {
             "label": "Client",
@@ -199,362 +231,479 @@
             "note": "GET /{shortCode}"
           },
           {
-            "label": "API Gateway",
-            "icon": "🔀",
-            "note": "Fan-out to both paths"
+            "label": "Redirect Service",
+            "icon": "⚙️",
+            "note": "Handles the request"
           }
         ],
         "branches": [
           {
-            "label": "Redirect path",
+            "label": "Redirect (user waits)",
             "nodes": [
               {
-                "label": "Request Handler",
-                "icon": "⚙️",
-                "note": "302 redirect — must hit the server every time"
-              },
-              [
-                {
-                  "label": "Redis Cache",
-                  "icon": "⚡",
-                  "note": "Checked first — URL lookup"
-                },
-                {
-                  "label": "Database",
-                  "icon": "🗄️",
-                  "note": "Fallback only on cache miss"
-                }
-              ]
+                "label": "Client",
+                "icon": "💻",
+                "note": "302 returned right away"
+              }
             ]
           },
           {
-            "label": "Analytics path",
+            "label": "Analytics (user does not wait)",
             "nodes": [
               {
                 "label": "Kafka",
                 "icon": "📨",
-                "note": "Fire-and-forget click event, after the redirect is sent"
+                "note": "Batched, after the response is sent"
               },
               {
                 "label": "Analytics Service",
                 "icon": "📊",
-                "note": "Consumes the stream asynchronously"
+                "note": "Consumes at its own pace"
               },
-              {
-                "label": "Redis Counters",
-                "icon": "⚡",
-                "note": "INCR short_code count — real-time reads"
-              },
-              {
-                "label": "ClickHouse",
-                "icon": "🗄️",
-                "note": "Periodic flush — durable historical queries"
-              }
+              [
+                {
+                  "label": "Redis Counters",
+                  "icon": "⚡",
+                  "note": "Live counts for dashboards"
+                },
+                {
+                  "label": "ClickHouse",
+                  "icon": "🗄️",
+                  "note": "Durable history for reports"
+                }
+              ]
             ]
           }
+        ]
+      },
+      {
+        "title": "4. Deleting a link",
+        "description": "A deleted link has to stop working despite the cache that makes redirects fast. The Shortening Service sets deleted_at in the database, then removes the code from Redis. The row stays, so the code returns 410 Gone and can never be reissued to someone else, which would silently send old links to a new destination. Expired links work the same way: the cache TTL never outlasts expires_at, and a background job clears old rows.",
+        "flow": [
+          {
+            "label": "Owner",
+            "icon": "💻",
+            "note": "DELETE /api/urls/{code}"
+          },
+          {
+            "label": "API Gateway",
+            "icon": "🔀",
+            "note": "Authenticate, route"
+          },
+          {
+            "label": "Shortening Service",
+            "icon": "⚙️",
+            "note": "Check ownership"
+          },
+          [
+            {
+              "label": "Database",
+              "icon": "🗄️",
+              "note": "Set deleted_at: the code is never reused"
+            },
+            {
+              "label": "Redis Cache",
+              "icon": "⚡",
+              "note": "Delete the entry so redirects stop"
+            }
+          ]
         ]
       }
     ],
     "deepDive": [
       {
         "level": "mid",
-        "question": "What two properties must the short code ID satisfy?",
-        "description": "The basic idea behind URL generation is creating a unique integer ID for each URL, then encoding it into a shorter human-readable format. The ID must satisfy two core properties:",
+        "question": "What properties must a short code have?",
+        "description": "Before comparing ways to generate codes, pin down what a good one looks like. Every option in the next question gets judged against these three.",
         "options": [
           {
-            "label": "Property 1: Global Uniqueness",
-            "content": "Two different long URLs must never map to the same short code. A collision is a correctness bug — users would silently be redirected to the wrong destination.\n\nThis rules out any approach that requires truncation (like MD5/SHA), since truncating a hash reintroduces collision probability."
+            "label": "Property 1: Unique",
+            "content": "Two different URLs must never share a code. A collision isn't a performance problem but a correctness bug: users are silently sent to the wrong destination."
           },
           {
-            "label": "Property 2: Shortness",
-            "content": "The code must be short enough to be practical. Production shorteners use 5–8 characters:\n  • bit.ly: 7 chars (e.g., bit.ly/aB3xK9z)\n  • t.ly: 5 chars (e.g., t.ly/ecgGp)\n  • TinyURL: 8 chars (e.g., tinyurl.com/e9enh3uz)\n\nWith Base62 and 7 chars: 62⁷ ≈ 3.5 trillion combinations — sufficient for any realistic scale. This rules out UUID (36 chars) and plain Snowflake IDs (18 decimal digits)."
+            "label": "Property 2: Short",
+            "content": "Short enough to share and type. Seven Base62 characters give 62⁷ ≈ 3.5 trillion codes, and 5 years of links uses about 0.05% of them. Six would also fit (about 57B), but with less headroom for growth."
+          },
+          {
+            "label": "Property 3: Hard to enumerate",
+            "content": "If codes are sequential, anyone can walk through them and scrape every link, including private documents people assumed were hidden.\n\nThis is easy to miss because it isn't about generation speed or correctness, and it rules out the simplest approach of encoding a plain counter."
           }
         ]
       },
       {
         "level": "mid",
-        "question": "What are the options for generating unique IDs for each URL?",
-        "description": "There are several approaches to generating unique integer IDs. Note: \"integer\" means a whole number representable in different number systems — e.g., 123456 in decimal is 0x1e240 in hex.",
+        "question": "How should you generate unique codes?",
+        "description": "This is the central decision on the write path. Each approach trades off length, coordination and predictability differently.",
         "options": [
           {
-            "label": "Option 1: Hash Functions",
-            "content": "MD5: produces a 128-bit hash value, fast but prone to collisions — not suitable for guaranteed unique ID generation.\n  Example: md5(\"url\") → c984d06aafbecf6bc55569f964148ea3 (32 hex chars)\n\nSHA-256: 256-bit hash, more collision-resistant but 64 chars long — far too long for URL shortening.\n  Example: e3b0c44298fc1c149afbf4c8996fb924...\n\nTruncating to 7 chars reintroduces collision risk. Double hashing adds complexity without solving length."
+            "label": "Option 1: Hash the URL",
+            "content": "Method: take the MD5 or SHA-256 of the URL and keep the first 7 characters.\n\nPros: no shared state, and the same URL always produces the same code.\n\nDrawback: truncation is the real problem. With billions of links, different URLs will collide, so every write needs a check-and-retry path. Two users shortening the same URL also end up sharing one code, which complicates ownership and analytics."
           },
           {
             "label": "Option 2: UUID",
-            "content": "UUIDv4: relies on randomness, 122-bit ID space making collisions extremely unlikely. However the 36-character output is still too long for URL shortening.\n  Example: f47ac10b-58cc-4372-a567-0e02b2c3d479\n\nUUIDv1: uses timestamp + MAC address, unique but leaks machine identity and generation time."
+            "content": "Pros: any server can generate one with no coordination, and collisions are effectively impossible.\n\nDrawback: a UUID is 36 characters as text, or about 22 in Base62, which defeats the purpose of a short link. Truncating it brings back the collision problem."
           },
           {
             "label": "Option 3: Snowflake IDs",
-            "content": "Structure: combines a timestamp, machine ID, and sequence number into a 64-bit integer — designed for distributed systems.\n  Example: 130267849091223552 (18 decimal digits)\n\nDrawback: Snowflake IDs are unique and timestamp-based, but the 64-bit integer Base62-encodes to ~10 chars — workable but not as compact as a pure sequence approach."
+            "content": "Structure: a 64-bit integer built from a timestamp, machine ID and sequence.\n\nPros: unique and generated without coordination.\n\nDrawback: it encodes to about 11 Base62 characters, which doesn't fit our 7. Snowflake's main benefit is time ordering, and a URL shortener has no need for that."
           },
           {
-            "label": "Option 4: Machine ID + Sequence Number",
+            "label": "Option 4: Random code with a uniqueness check",
+            "content": "Method: generate 7 random characters and insert. If the code is taken, pick another.\n\nPros: very simple, and naturally unguessable. With 0.05% of the space used, collisions are rare.\n\nTrade-off: every create depends on a uniqueness check, and retries grow slowly as the space fills. It's a genuinely good choice at this scale, and worth saying so in an interview."
+          },
+          {
+            "label": "Option 5: Range allocation",
             "badge": "Chosen",
-            "content": "Method: assign each machine a unique prefix (1–2 chars). Each machine increments its own sequence counter independently.\n  Example: Machine \"A1\", sequence 0001 → ID \"A10001\" → Base62-encoded short code\n\nWhy this wins:\n• Fully controlled length — adjust prefix + sequence size to fit\n• Write paths are completely independent — no cross-machine coordination or distributed locks\n• Scale by adding machines with new prefixes\n• The database shards using the same Machine ID prefix, so reads route correctly on cache miss"
+            "content": "Method: a small counter service hands each server a block of IDs, such as 10,000. The server issues them from memory, shuffling each one before encoding.\n  Example: block 1,000,000-1,009,999 → next ID → shuffle → Base62 → 0mfXDT8\n\nWhy this wins: codes are guaranteed unique with no check on the generated path, they always fit in 7 characters, and creating a link needs no coordination between servers. Refilling a block takes one small query every few minutes.\n\nTrade-off: one more small component to run, and a crash wastes the rest of a block, which is harmless with 3.5T codes available."
           }
         ]
       },
       {
         "level": "mid",
-        "question": "How can we encode the unique IDs into short, user-friendly URLs?",
-        "description": "After generating a unique integer ID, we encode it into a shorter, readable string. The encoding must balance compactness with URL safety — avoiding characters that require percent-encoding.",
+        "question": "How should you encode IDs into short, URL-friendly strings?",
+        "description": "A numeric ID is just a number, and the encoding decides how many characters it takes. Using 123456 as the example, compare how each one does.",
         "options": [
           {
             "label": "Option 1: Hexadecimal (Base16)",
-            "content": "Characters: digits 0–9 and letters a–f (16 possible chars).\n  Example: 123456 → \"1e240\" in hex\n\nPros: widely recognized, simple to implement.\nCons: not compact enough — a 64-bit integer in hex requires 16 chars. Too long for URL shortening."
+            "content": "Characters: 0-9 and a-f.\n  Example: 123456 → 1e240\n\nDrawback: only 16 symbols per character, so 7 characters give just 268M codes. We'd use that up in under a year."
           },
           {
             "label": "Option 2: Base64",
-            "content": "Characters: A–Z, a–z, 0–9, +, /, = (64 chars).\n  Example: 123456 → \"MTIzNDU2\" in Base64\n\nPros: more compact than hex.\nCons: uses +, /, and = which are reserved in URLs and require percent-encoding, making short URLs ugly and breakable in some contexts."
+            "content": "Characters: A-Z, a-z, 0-9, + and /.\n  Example: 123456 → eJA\n\nPros: the most compact of these, with about 4.4T codes in 7 characters.\n\nDrawback: + and / have special meanings in URLs. The URL-safe variant swaps them for - and _, which fixes that, but trailing or leading symbols are still easy to lose when copying or when text wraps."
           },
           {
             "label": "Option 3: Base62",
             "badge": "Chosen",
-            "content": "Characters: A–Z, a–z, 0–9 (62 chars — zero special characters).\n  Example: 123456 → \"W7E\" in Base62\n\nWith 7 chars: 62⁷ ≈ 3.5 trillion unique codes — more than enough at any realistic scale.\n\nPython implementation:\n  CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'\n  def base62_encode(n):\n      if n == 0: return CHARS[0]\n      out = ''\n      while n > 0:\n          n, r = divmod(n, 62)\n          out = CHARS[r] + out\n      return out\n\nWhy Base62 wins: URL-safe, no special chars, compact, and the character set is human-readable and easy to type."
+            "content": "Characters: 0-9, A-Z and a-z, with no symbols at all.\n  Example: 123456 → W7E\n\nWhy this wins: it's safe everywhere a link might appear, and it barely costs anything compared with Base64: 3.5T codes against 4.4T.\n\nPython implementation:\n  CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'\n  def base62_encode(n, width=7):\n      out = ''\n      while n > 0:\n          n, r = divmod(n, 62)\n          out = CHARS[r] + out\n      return out.rjust(width, '0')\n\nTrade-off: characters like 0 and O or l and I are easy to confuse when someone types a link by hand. If that matters for your product, Base58 removes them."
           }
         ]
       },
       {
         "level": "mid",
-        "question": "When should you use 301 vs 302 for the redirect?",
-        "description": "The HTTP redirect status code determines whether browsers and CDNs cache the short-to-long URL mapping, which has significant performance and analytics implications.",
+        "question": "Should the redirect be a 301 or a 302?",
+        "description": "This looks like a small detail, but the status code decides whether your servers see repeat clicks at all, which affects analytics, deletion and expiry.",
         "options": [
           {
             "label": "301 Moved Permanently",
-            "content": "Tells browsers and CDNs to cache the mapping indefinitely. Future visits from the same browser never reach your servers.\n\nPros: massive performance win, eliminates server cost for repeat visitors.\nCons: you lose analytics data — browsers bypass your server entirely. And if you ever need to change the destination URL, cached 301s are nearly impossible to invalidate.\n\nBest for: permanent reference links where analytics do not matter."
+            "content": "Browsers cache the mapping, potentially for a long time, and future visits skip your servers.\n\nPros: much less traffic, and faster repeat visits.\n\nCons: you can't count those clicks. You also can't reliably stop them: a deleted or expired link keeps working in any browser that has already cached it.\n\nBest for: permanent links where analytics and control genuinely don't matter."
           },
           {
-            "label": "302 Found (Temporary)",
-            "content": "Bypasses the browser cache. Every click routes through your servers, so you can record analytics, check expiry, and change the destination URL later.\n\nPros: accurate click analytics, supports mutable destinations.\nCons: every redirect incurs server round-trip latency. At 100M clicks/day this is significant infrastructure cost.\n\nBest for: marketing campaigns, short-lived links, any scenario where analytics matter."
+            "label": "302 Found",
+            "badge": "Chosen",
+            "content": "Browsers don't cache it by default, so every click comes through your servers.\n\nWhy this wins: our requirements include analytics, expiry and deletion, and all three depend on seeing each request.\n\nTrade-off: more traffic. That's the cost of the 3,500 redirects/sec this design is built for."
           },
           {
-            "label": "Decision Guide",
-            "badge": "Decision Guide",
-            "content": "Practical rule:\n  • Marketing / campaign links → 302 (analytics are valuable)\n  • Permanent reference links → 301 (eliminate server load)\n  • Default when unsure → 302 (safer choice)\n\nCritical: you cannot retroactively recover click data from 301-cached requests. If analytics might matter later, start with 302. You can switch to 301 later, but you cannot undo lost analytics."
+            "label": "The asymmetry",
+            "badge": "Key Insight",
+            "content": "These two choices aren't equally reversible. You can move from 302 to 301 whenever you like, but a 301 already cached in someone's browser can't be recalled, and clicks you never saw can't be recovered.\n\nWhen unsure, choose the option you can change later."
           }
         ]
       },
       {
         "level": "mid",
-        "question": "How do you support user-requested custom aliases?",
-        "description": "Some users want a memorable code (e.g., short.ly/my-launch) instead of an auto-generated one. This changes the write path and has knock-on effects for sharding.",
+        "question": "Which database should store the links?",
+        "description": "Links are simple: one primary key, one main query, no joins on the hot path. That makes a key-value store sound obvious, but the numbers are worth checking first.",
         "options": [
           {
-            "label": "Skip the ID Generator",
-            "content": "When custom_alias is present in the request, skip Base62 encoding entirely and attempt to write the user-supplied string directly as short_code.\n\nThe ID generator (and its Machine ID prefix) is only used for auto-generated codes — custom aliases bypass it completely."
-          },
-          {
-            "label": "Uniqueness Check Before Insert",
-            "content": "Rely on a UNIQUE constraint on short_code and catch the insert conflict, or SELECT first if a pre-check is preferred.\n\nReturn HTTP 409 Conflict if the alias is already taken, with a clear error message so the client can prompt the user for a different alias."
-          },
-          {
-            "label": "Validation & Reserved Namespace",
-            "content": "Whitelist the character set (alphanumeric + hyphen, no spaces) and cap length (e.g., 3–20 chars).\n\nReject aliases that collide with the app's own routes (api, admin, health, etc.) — otherwise a custom alias could shadow an internal endpoint."
-          },
-          {
-            "label": "Sharding Implication",
-            "badge": "Key Insight",
-            "content": "The read-path optimization that derives the DB shard from the first character of the code (the Machine ID prefix) does not hold for arbitrary user strings.\n\nFix: route custom-alias lookups through a separate index (or a dedicated shard) keyed by short_code directly, since there's no embedded shard key to extract on a cache miss."
-          }
-        ]
-      },
-      {
-        "level": "senior",
-        "question": "How do you enforce short URL expiration?",
-        "description": "expires_at is stored on write, but the system needs an active mechanism to actually stop serving — and eventually clean up — expired links.",
-        "options": [
-          {
-            "label": "Lazy Check on Read",
-            "content": "On every redirect, after the cache/DB lookup returns a mapping, compare expires_at to now(). If expired, return 410 Gone instead of a redirect.\n\nThis is correct instantly — no background process needs to run for the system to stop honoring an expired link."
-          },
-          {
-            "label": "Cache TTL Tied to Expiration",
-            "content": "Set the Redis TTL to min(default_ttl, expires_at - now()) when warming the cache, instead of a flat 24 h.\n\nThis way an expired mapping naturally falls out of Redis at (or before) its expiration time — no stale \"still valid\" cache entries can outlive the row."
-          },
-          {
-            "label": "Background Cleanup Job",
-            "content": "Lazy checks alone leave dead rows in the database forever, bloating storage and indexes. Run a periodic batch job (e.g., hourly) that deletes rows where expires_at < now().\n\nThis is a low-priority background job — it only reclaims storage, it does not affect correctness (the lazy check already guarantees expired links 410 before this job ever runs)."
-          }
-        ]
-      },
-      {
-        "level": "senior",
-        "question": "How do you scale ID generation horizontally using sharding?",
-        "description": "Request handlers are stateless HTTP servers — they scale trivially with more instances. The ID generator is the bottleneck because it must produce globally unique IDs under concurrent load.",
-        "options": [
-          {
-            "label": "Sharding Strategy: Machine ID as Shard Key",
-            "content": "Assign each machine a unique prefix (1–2 chars). Each machine appends an incrementing sequence number to generate IDs.\n  Example: Machine \"A1\", sequence 0001 → short code \"A10001\" → Base62-encoded\n\nThe database is sharded using the same Machine ID prefix. This means each machine writes exclusively to its own DB shard — no cross-machine coordination, no distributed locks. Linear horizontal scalability: adding a machine = new prefix = new DB shard."
-          },
-          {
-            "label": "Write Path Independence",
-            "content": "The primary benefit: write paths are completely independent across machines.\n\nMachine A writes to Shard A. Machine B writes to Shard B. They never interact. Under high write load you add machines without affecting existing ones — each new machine is self-sufficient from day one.\n\nThis is why we choose Machine ID over Snowflake IDs: Snowflake requires synchronized timestamps and a global machine registry. Machine ID + sequence requires only a startup configuration."
-          },
-          {
-            "label": "Read Path Routing",
-            "content": "On a cache hit (Redis), the DB is never touched — no routing needed.\n\nOn a cache miss, the server extracts the Machine ID prefix from the short code to route the lookup to the correct DB shard.\n  Example: short code \"a82c7w\" → prefix \"a\" → DB Shard A\n\nThis makes reads as independent as writes — no cross-shard queries needed. The prefix is embedded in every short code by design."
-          },
-          {
-            "label": "Scaling Request Handlers vs ID Generator Independently",
-            "badge": "Key Insight",
-            "content": "Request Handlers and ID Generators have different resource profiles:\n\nRequest Handlers: primarily I/O bound (handling HTTP connections, holding open sockets). Need many instances for concurrency.\n\nID Generator / URL Shortening Service: CPU + I/O bound (generating IDs, writing to DB). Fewer instances needed per unit of throughput.\n\nThis asymmetry means you should NOT enforce 1:1 scaling between them. Request Handlers scale out faster. ID Generator machines can randomly pick from the pool of handler instances to balance load."
-          }
-        ]
-      },
-      {
-        "level": "senior",
-        "question": "Should you pre-generate IDs in bulk, or generate on demand?",
-        "description": "One potential bottleneck: under high write load, generating a new unique ID for each request and persisting it to the DB on the critical path may be too slow.",
-        "options": [
-          {
-            "label": "On-Demand Generation",
-            "content": "Generate a new ID when each shorten request arrives, write it to the DB, then return the short code.\n\nPros: simple, no wasted IDs, easy to reason about state.\nCons: every shorten request requires a synchronous DB write. Under sudden traffic spikes, DB contention can spike write latency above acceptable thresholds."
-          },
-          {
-            "label": "Bulk Pre-Generation",
-            "content": "Each machine pre-generates a batch of IDs on startup (or when the current batch runs low), stores them in memory, and hands them out without hitting the DB.\n\nPros:\n• Absorbs burst traffic — IDs available instantly from memory\n• Lower latency — no DB round-trip in the critical path\n\nCons:\n• More complex: must track batch state, handle machine restarts, avoid handing out duplicate IDs after crash recovery\n• ID waste: if a machine crashes with an unused batch, those IDs are lost (gaps in sequence — acceptable)"
-          },
-          {
-            "label": "Recommendation",
+            "label": "Option 1: Relational database (PostgreSQL, MySQL)",
             "badge": "Chosen",
-            "content": "Start with on-demand generation. Measure DB write latency under peak load before adding complexity.\n\nIf DB write latency exceeds 50 ms under peak traffic, introduce bulk pre-generation with:\n  • Batch size: 1,000–10,000 IDs per machine\n  • Persist the high-water mark to durable storage to survive restarts\n  • Monitor batch exhaustion rate to tune batch size\n\nThis follows the principle: optimize only what you can measure, not what you can imagine."
-          }
-        ]
-      },
-      {
-        "level": "senior",
-        "question": "How does the Redis caching layer work and what is the eviction strategy?",
-        "description": "The cache is what makes the redirect path fast. The 80/20 rule applies strongly here: 20% of URLs receive 80% of traffic, so a modest Redis instance can absorb the vast majority of reads.",
-        "options": [
-          {
-            "label": "Write Path: Cache Warming",
-            "content": "After a successful DB insert, immediately SET the mapping in Redis:\n  SET short_code long_url EX 86400  (24-hour TTL)\n\nThis \"warms\" the cache for the new URL before any user visits it. Cache-aside write ensures the first redirect after shortening is a cache hit."
+            "content": "Why this wins: the load is small. There are 12 writes/sec, about 175 reads/sec after the cache, and about 915 GB after 5 years. One primary with a replica handles this comfortably.\n\nIt also gives you the primary key constraint that makes custom aliases safe, plus a simple index for listing a user's links, with tooling everyone knows.\n\nTrade-off: you'll have to shard by hand if growth far outruns the plan."
           },
           {
-            "label": "Read Path: Cache-Aside",
-            "content": "On every redirect request:\n  1. GET short_code from Redis\n  2. If hit (< 1 ms): return 301/302 redirect immediately — DB is never touched\n  3. If miss: query DB, SET result in Redis (lazy population), then redirect\n\nThis is the \"cache-aside\" pattern. The handler explicitly manages cache population rather than relying on a read-through proxy."
+            "label": "Option 2: Key-value store (DynamoDB, Cassandra)",
+            "content": "Pros: a natural fit for single-key lookups, and scaling out is built in.\n\nCons: secondary queries like \"my links\" need extra design, conditional writes for aliases vary by product, and operating Cassandra takes real expertise.\n\nBest for: traffic far beyond this plan. It's a defensible answer if you can explain the limits you're expecting to reach."
           },
           {
-            "label": "Eviction Strategy",
-            "content": "Redis policy: allkeys-lru — evicts the least-recently-used keys when memory is full.\n\nSizing: with the 80/20 rule, ~5 GB of hot URLs serves ~80% of all traffic. Size Redis to hold the hot set comfortably with headroom.\n\nCache miss rate target: below 5%. A spike in misses usually means:\n  • A wave of new unique URLs (expected, temporary)\n  • TTL misconfiguration (investigate)\n  • Unusual traffic pattern (e.g., a viral link to a cold URL)\n\nNever use TTL=0 (infinite) for all keys — deleted short URLs would persist and serve stale data."
-          }
-        ]
-      },
-      {
-        "level": "staff",
-        "question": "Should redirects be served from the edge (CDN) instead of origin servers?",
-        "description": "Regional Redis replicas already get reads close to users. The next lever is skipping the origin entirely for the hottest codes.",
-        "options": [
-          {
-            "label": "Edge Redirect Logic",
-            "content": "Deploy the short-URL domain behind a CDN (Cloudflare, Fastly) and run the redirect lookup in an edge function (Cloudflare Workers, Lambda@Edge).\n\nHot codes resolve at the nearest Point of Presence without a round trip to any region's origin servers — shaving latency beyond what regional Redis replicas alone achieve."
-          },
-          {
-            "label": "Trade-offs",
-            "content": "Edge runtimes have restricted language/library support and are harder to debug and observe than a normal service.\n\nInvalidation lag is the real risk: if a destination URL changes, expires, or is deleted, the edge cache may keep serving the old mapping until its TTL lapses — worse than the DB-backed staleness window of regional caching."
-          },
-          {
-            "label": "When It Is Worth It",
+            "label": "How to answer this",
             "badge": "Decision Guide",
-            "content": "Only pays off once your user base is meaningfully cross-continental and the marginal latency below the regional-cache floor actually matters to the product.\n\nIf traffic is concentrated within a few regions, multi-region Redis replicas (already in the design) capture most of the benefit at a fraction of the operational complexity. Add edge redirects as a later optimization, not a day-one requirement."
+            "content": "Do the arithmetic before naming a technology. A common mistake is choosing a horizontally scaled store for a workload one machine can handle.\n\nThe strong answer: \"Relational is enough at this scale. If writes reached thousands per second I'd reconsider, and because the code is the key, the data would move cleanly.\""
           }
         ]
       },
       {
-        "level": "staff",
-        "question": "How do you design multi-region active-active while guaranteeing uniqueness?",
-        "description": "Multi-region deployment has two very different problems: the read path (easy) and the write path (hard). They must be solved independently.",
+        "level": "mid",
+        "question": "How do you support custom aliases?",
+        "description": "Some users want short.ly/my-launch instead of a generated code. It's a small feature with a few traps.",
         "options": [
           {
-            "label": "Read Path (Trivial)",
-            "content": "Replicate Redis and DB read replicas to every region. Serve redirect reads locally — no cross-region traffic needed.\n\nResult: redirect latency is sub-10 ms globally regardless of user location. This is the primary win of multi-region deployment."
+            "label": "Let the primary key enforce uniqueness",
+            "content": "Skip ID generation and insert the alias as short_code. If it's already taken, the database rejects the insert and the API returns 409 Conflict.\n\nDon't check first and insert second: two users could both pass the check at the same moment. The constraint is the only check that can't race."
           },
           {
-            "label": "Approach 1: Single Primary Region for Writes",
-            "content": "Route all write requests (POST /api/urls/shorten) to a designated primary region. Other regions proxy the write through.\n\nPros: simple, no ID coordination across regions.\nCons: write latency for distant users is ~100–200 ms higher due to the cross-region round-trip.\n\nAcceptable? Yes — shortening happens rarely compared to redirecting. A user tolerates 200 ms to create a link; they would not tolerate 200 ms on every redirect."
+            "label": "Validate and reserve names",
+            "content": "Allow letters, digits and hyphens, from 3 to 20 characters. Block names that clash with your own routes, such as api, admin and health, or an alias could take over a real endpoint. Block offensive words and brand names too, which are an abuse issue as well as a technical one."
           },
           {
-            "label": "Approach 2: Partitioned ID Space",
+            "label": "Aliases and generated codes share a namespace",
+            "badge": "Key Insight",
+            "content": "A user might pick an alias that a future generated code would land on. It's very unlikely, but the design has to handle it.\n\nFix: generated-code inserts also rely on the primary key. On the rare conflict, take the next ID and try again. Because shards use a hash of the code, aliases and generated codes also route in exactly the same way."
+          }
+        ]
+      },
+      {
+        "level": "mid",
+        "question": "What happens when the same URL is shortened twice?",
+        "description": "It seems wasteful to create two codes for one URL, but returning the existing code causes more problems than it solves.",
+        "options": [
+          {
+            "label": "Option 1: Return the existing code",
+            "content": "Pros: saves a little storage.\n\nDrawback: it needs a unique index on a hash of every URL, which adds cost to every write. Ownership also breaks: if two users share one code, whose analytics are they, who can delete it, and whose expiry wins?"
+          },
+          {
+            "label": "Option 2: Create a new code every time",
             "badge": "Chosen",
-            "content": "Assign each region a unique datacenter bit in the Snowflake-style ID structure. Each region generates IDs in a completely disjoint range — no cross-region coordination needed for ID generation.\n\nReplication: after writing locally, the new mapping propagates to other regions asynchronously (~200 ms).\n\nUser impact: a link created in us-east takes ~200 ms to resolve in eu-west. This is invisible to users — they share the link after creation, not before.\n\nTrade-off: requires datacenter ID management and cross-region replication monitoring. More infrastructure to maintain, but eliminates the write latency penalty for distant users."
+            "content": "Why this wins: each link has one owner, its own analytics and its own expiry. Campaigns often want this on purpose, using separate links for email and social to compare them.\n\nTrade-off: some duplicate rows, at about 500 bytes each. Storage is the cheapest resource in this design."
+          },
+          {
+            "label": "Accidental duplicates are a different problem",
+            "badge": "Key Insight",
+            "content": "A double-click or a client retry shouldn't create two links. That's a question of request idempotency rather than URL deduplication.\n\nFix: the client sends an Idempotency-Key header. The server remembers it briefly, and returns the original response if the same key arrives again."
+          }
+        ]
+      },
+      {
+        "level": "senior",
+        "question": "How does range allocation work in practice?",
+        "description": "The idea is simple, but three details need answers: how a block is claimed safely, what happens on failure, and how to stop the output from being sequential.",
+        "options": [
+          {
+            "label": "Claiming a block",
+            "content": "A single atomic update hands out each block, so two servers can never get the same one:\n  Example: UPDATE code_range SET next_value = next_value + 10000 RETURNING next_value\n\nAt 12 writes/sec, a block of 10,000 lasts about 14 minutes on a single server. That's very low load, so this table can sit on an ordinary small database."
+          },
+          {
+            "label": "What happens on failure",
+            "content": "A server crash loses the unused part of its block. The IDs are never issued, which leaves a gap and nothing more. Even losing whole blocks every day would barely touch 3.5T codes.\n\nIf the counter service goes down, servers keep working from the blocks they hold. Refill before a block runs out, and you have minutes of warning instead of an instant outage."
+          },
+          {
+            "label": "Shuffling so codes aren't sequential",
+            "badge": "Key Insight",
+            "content": "Encoding the counter directly gives away the sequence:\n  Example: 0004C92, 0004C93, 0004C94, 0004C95\n\nUse a keyed permutation such as a small Feistel cipher. It maps every number to a different number in the same range, so uniqueness is preserved and no lookup table is needed:\n  Example: 0mfXDT8, 4eScIgb, PMv5L02, x8vrzrl\n\nSimple XOR with a secret doesn't work. It only flips the same bits each time, so neighboring IDs still produce nearly identical codes (OqNG, OqNH, OqNE), and the pattern is easy to spot."
+          }
+        ]
+      },
+      {
+        "level": "senior",
+        "question": "How should the cache work?",
+        "description": "The cache is what makes redirects fast and keeps the database small. Getting it right comes down to how entries get in, what they contain and how they leave.",
+        "options": [
+          {
+            "label": "Reads: cache-aside",
+            "content": "On each redirect:\n  1. Look up the code in Redis\n  2. On a hit, check expiry and redirect, without touching the database\n  3. On a miss, read the database, fill the cache, then redirect\n\nStore expires_at in the entry along with the URL, so expiry can be checked without a database read."
+          },
+          {
+            "label": "Writes: warm on create",
+            "content": "After the database write succeeds, add the new link to Redis. New links tend to get clicked right away, as people test and share them.\n\nWrite to the database first. If the cache write fails the link still exists and the next click fills the cache, whereas the reverse order could serve a link that was never saved."
+          },
+          {
+            "label": "Sizing and eviction",
+            "content": "With about 5M distinct links clicked per day at about 1 KB each, the hot set is about 5 GB. A 24-hour TTL means only each link's first click of the day misses, which gives a hit rate of about 95%.\n\nUse allkeys-lru so the least recently used keys are evicted if memory fills. Keep the size comfortably above the hot set, and alert on hit rate: a drop usually means something has changed."
+          }
+        ]
+      },
+      {
+        "level": "senior",
+        "question": "How do you handle viral links and lookups that don't exist?",
+        "description": "Average numbers hide two dangerous cases. One link can suddenly receive a huge share of traffic, and codes that don't exist can bypass the cache altogether.",
+        "options": [
+          {
+            "label": "Cache stampede",
+            "content": "When a very popular entry expires, thousands of concurrent requests all miss together and hit the database for the same row.\n\nFix: let only one request per server fetch from the database, while the others wait for its result (request coalescing). Adding random jitter to TTLs also stops many entries from expiring at the same moment."
+          },
+          {
+            "label": "Hot keys",
+            "content": "A single Redis node can serve a lot, but one viral link could still overload the node holding it, and adding nodes doesn't help because the key lives in one place.\n\nFix: keep the hottest entries in a small in-process cache on each Redirect Service instance, for a few seconds. Most repeat lookups stop at the server, and the short lifetime limits staleness."
+          },
+          {
+            "label": "Nonexistent codes",
+            "content": "A code that doesn't exist is never in the cache, so every attempt reaches the database. A bot trying random codes can turn this into an attack.\n\nFix: cache \"not found\" results for a short time, around 60 seconds, and rate limit by client. The create path must clear that entry, or a new link could return 404 until the entry expires.\n\nA Bloom filter of existing codes can block these lookups earlier, though it needs rebuilding as the data changes."
+          }
+        ]
+      },
+      {
+        "level": "senior",
+        "question": "How do you avoid serving stale data?",
+        "description": "Caches and replicas are always slightly behind the primary. In most systems that's fine, but two moments here are visible to users: right after a link is created and right after it is deleted.",
+        "options": [
+          {
+            "label": "A new link returns 404",
+            "content": "If a cache miss reads a replica that hasn't received the row yet, someone opening a link they just created sees a 404. It looks like a broken product.\n\nFix: warming the cache on create covers most cases. If the lookup still finds nothing, check the primary before returning a 404. Nonexistent codes are uncommon, so this adds little load, and the negative cache absorbs the rest."
+          },
+          {
+            "label": "A deleted link keeps working",
+            "content": "Without invalidation, a deleted link keeps redirecting until its 24-hour TTL expires. If someone deletes a link because it exposed something sensitive, that isn't acceptable.\n\nFix: delete the Redis entry as part of the delete request. A failed cache delete must be retried, so publish a message and let a worker retry it until it succeeds. In-process caches keep their lifetime to a few seconds, which sets the upper limit on how stale they can get."
+          },
+          {
+            "label": "Be honest about what you promise",
+            "badge": "Key Insight",
+            "content": "Our requirement says a deleted link stops working immediately, but that's only true to within a few seconds, and a browser that cached an old response could still follow it.\n\nA strong answer says this directly: state the actual window, explain what controls it, and mention that it's why this design avoids a 301."
+          }
+        ]
+      },
+      {
+        "level": "senior",
+        "question": "How do you enforce expiration?",
+        "description": "expires_at is only a stored value. The system still needs something to make it take effect, and then clean up afterwards.",
+        "options": [
+          {
+            "label": "Check on every read",
+            "content": "After any lookup, compare expires_at with the current time, and return 410 Gone if it has passed.\n\nThis makes expiry correct the moment it happens, with no background process involved. Everything else here is just optimization and cleanup."
+          },
+          {
+            "label": "Align the cache TTL",
+            "content": "Set the Redis TTL to the smaller of 24 hours and the time remaining until expiry. Entries then leave the cache by the time they expire, so the cache doesn't fill up with dead links."
+          },
+          {
+            "label": "Clean up in the background",
+            "content": "Read checks leave expired rows in the database forever. A low-priority job can remove old rows in small batches to reclaim storage.\n\nIt doesn't affect correctness, so it can run whenever load is low. Keep a record of used custom aliases if you want to prevent them from being reissued to a new owner."
+          }
+        ]
+      },
+      {
+        "level": "senior",
+        "question": "How would you scale the database if traffic grows far beyond the plan?",
+        "description": "The stated scale doesn't require any of this, and saying so is part of a good answer. But interviewers often ask what happens at 100 times the load, and the two paths have different answers.",
+        "options": [
+          {
+            "label": "Reads: more cache, then replicas",
+            "content": "The cache absorbs about 95% of reads, and misses go to read replicas. Replicas are simple to add, but each one applies every write too, so they do nothing for write capacity.\n\nBecause reads and writes run in separate services, each one can scale without affecting the other."
+          },
+          {
+            "label": "Writes: shard by a hash of the code",
+            "badge": "Chosen",
+            "content": "Method: shard = hash(short_code) mod the shard count, ideally using consistent hashing so adding shards moves as little data as possible.\n\nWhy this wins: a redirect always knows its shard from the code alone, and custom aliases route the same way as generated codes.\n\nTrade-off: listing a user's links now touches every shard, unless you keep a separate index by user_id."
+          },
+          {
+            "label": "Try it in the simulator",
+            "badge": "Key Insight",
+            "content": "The live simulator on this page lets you push traffic past the design peak and see this order for yourself. The app tier goes first, then the database under reads, then the database under writes.\n\nNotice that each fix solves one specific bottleneck and then reveals the next. That's a much stronger story than listing every technique up front."
           }
         ]
       },
       {
         "level": "staff",
-        "question": "How do you handle analytics at 100 million clicks/day without slowing redirects?",
-        "description": "The key insight: analytics writes must be completely decoupled from the redirect path. Any synchronous analytics work on the critical path is a latency and availability risk.",
+        "question": "How would you run this across multiple regions?",
+        "description": "Reads and writes have very different needs here. Redirects must be fast everywhere, while creating a link is rare and tolerates some delay.",
         "options": [
           {
-            "label": "Decoupling Architecture",
-            "content": "On every GET request, the redirect handler:\n  1. Sends the 301/302 redirect immediately (< 10 ms)\n  2. Fire-and-forgets a click event to Kafka after the response is sent\n\nThe user never waits for analytics. An analytics pipeline outage (Kafka down, Analytics Service down) has zero impact on redirect availability."
+            "label": "Reads: local in every region",
+            "content": "Run Redis and database replicas in each region, so a redirect only travels to the nearest one. This removes the long-distance trip from nearly all traffic, which is the main benefit of going multi-region."
           },
           {
-            "label": "Kafka Event Stream",
-            "content": "Event payload: { short_code, timestamp, ip, referer, user_agent }\n\nScale: 100M clicks/day ≈ 1,160 events/sec average, ~3,500/sec at peak — well under a single Kafka partition's ~100K msg/sec ceiling. Even so, run 3 partitions with RF=3 (replication factor 3) for fault tolerance, not throughput — the volume itself doesn't demand it.\n\nConsumers can lag behind by minutes during spikes — the redirect path is unaffected."
+            "label": "Approach 1: One primary region for writes",
+            "badge": "Chosen",
+            "content": "Other regions forward creates to the primary region.\n\nWhy this wins: writes are rare, and an extra 100-200 ms is acceptable when creating a link, unlike on every redirect. Custom aliases stay simple too, because one primary decides who owns each name.\n\nTrade-off: if the primary region fails, creating links stops until failover, although redirects keep working. That matches our requirement, which puts redirect availability first."
           },
           {
-            "label": "Analytics Service + Storage",
-            "content": "The Analytics Service consumes the Kafka stream and:\n  1. Increments Redis counters: INCR rl:{short_code}:{YYYY-MM-DD-HH}\n  2. Periodically (every 5 min) flushes counters to ClickHouse or BigQuery\n\nRedis provides real-time counts (dashboard can show \"clicks in the last hour\"). ClickHouse provides historical ad-hoc queries (\"clicks per country per day over the last 90 days\").\n\nThis two-tier approach gives both speed and durability at scale."
+            "label": "Approach 2: Writes in every region",
+            "content": "Range allocation makes this possible for generated codes, because each region can hold its own blocks and they can't overlap.\n\nDrawback: custom aliases are the hard part. Two regions could accept the same alias at once, so you still need a single authority for aliases, or a globally consistent store. All of that complexity saves about 200 ms on an uncommon operation."
+          },
+          {
+            "label": "Don't forget replication lag",
+            "badge": "Key Insight",
+            "content": "A link created in the US might be opened in Europe before it has replicated. Someone sharing a link in a group chat can trigger this within seconds.\n\nFix: when a region can't find a code, it asks the primary region before returning a 404. This costs a slow lookup in a rare case, in exchange for never showing a false 404."
           }
         ]
       },
       {
         "level": "staff",
-        "question": "How do you prevent abuse — link spam, phishing, and enumeration attacks?",
-        "description": "A public URL shortener is an attractive abuse target: spammers can use it to obscure phishing URLs, and sequential short codes are enumerable. Defense requires multiple independent layers.",
+        "question": "Should redirects be served from the edge?",
+        "description": "A CDN or edge function could answer the most popular links from a location close to each user, without reaching your servers at all.",
         "options": [
           {
-            "label": "Rate Limiting",
-            "content": "Apply a Redis sliding-window counter on POST /api/urls/shorten by two keys:\n  • IP address: catches unauthenticated bulk creation\n  • User ID: catches authenticated quota abuse\n\nReject at HTTP 429 after N requests/minute. Return Retry-After header so well-behaved clients back off gracefully.\n\nDo NOT rely solely on IP-based limiting — one NAT gateway can represent thousands of legitimate users."
+            "label": "How it works",
+            "content": "Put the short domain behind a CDN and run the lookup in an edge function, with a small key-value store or a short-lived cached response.\n\nPros: the lowest possible latency, and the origin is shielded from traffic spikes on viral links."
           },
           {
-            "label": "Safe Browsing API",
-            "content": "Before persisting a new mapping, check the destination URL against Google Safe Browsing or VirusTotal.\n\nReject known phishing, malware, and spam URLs synchronously — return HTTP 422 with a clear error message.\n\nLatency cost: ~50 ms added to the write path. Acceptable since shortening is rare and the safety benefit is high.\n\nAlso implement async re-scanning: periodically re-check existing URLs against updated threat databases. Malicious content may not be flagged at creation time."
+            "label": "What it costs",
+            "content": "Invalidation is the main risk. A deleted link can keep working until the edge entry expires, which weakens a requirement this design explicitly makes.\n\nAnalytics also get harder, because clicks answered at the edge never reach your servers. Events have to be sent from the edge or collected from CDN logs. Edge runtimes are also harder to debug and observe."
           },
           {
-            "label": "Non-Guessable Codes",
-            "content": "Base62 encoding of sequential IDs is predictable — an attacker can enumerate codes sequentially to scrape all stored URLs.\n\nFix: XOR-mask the integer with a per-deployment secret before Base62 encoding.\n  encode(id XOR SECRET) → appears random, but SECRET lets you decode it server-side\n\nThe codes appear random while remaining efficiently decodable. No lookup table or DB query needed to validate a code.\n\nCombine with GET rate limiting (by IP + user agent) as a backstop against enumeration even if the XOR mask is discovered."
+            "label": "When it's worth it",
+            "badge": "Decision Guide",
+            "content": "Use it when users are spread across continents, and the latency left after regional deployment actually affects the product.\n\nStart with a short TTL, and consider caching only links that have no expiry and are unlikely to be deleted. Treat it as a later optimization, not part of the first design."
+          }
+        ]
+      },
+      {
+        "level": "staff",
+        "question": "How do you count clicks without slowing redirects?",
+        "description": "Each redirect creates a click event. The aim is useful analytics, with no way for that pipeline to affect the redirect path.",
+        "options": [
+          {
+            "label": "Publish after responding",
+            "content": "The Redirect Service sends the 302, then adds the event to a bounded in-memory buffer that is published to Kafka in batches.\n\nThe bound is what matters. If Kafka is unavailable, the buffer fills and events get dropped, so memory can't grow until the server fails. A crash can lose a few seconds of clicks, which is acceptable for analytics. It wouldn't be for billing."
+          },
+          {
+            "label": "The Kafka stream",
+            "content": "Event: short_code, timestamp, referrer and country, resolved at the edge of the system so the raw IP needn't be stored.\n\nScale: about 3,500 events/sec at peak is modest. A few partitions are enough, with a replication factor of 3 for fault tolerance.\n\nDon't partition by short_code, or a viral link will overload one partition. Clicks can be counted in any order, so distribute them evenly instead."
+          },
+          {
+            "label": "Two stores for two jobs",
+            "content": "The Analytics Service writes to both of these:\n  1. Redis counters give live numbers cheaply\n  2. ClickHouse stores events in batches, for queries such as clicks per country over 90 days\n\nA live counter key might look like this:\n  INCR clicks:{short_code}:{YYYY-MM-DD-HH}\n\nKafka delivers at least once, so a consumer restart can double-count a few events. If analytics ever needs to be exact, deduplicate using an event ID."
+          }
+        ]
+      },
+      {
+        "level": "staff",
+        "question": "How do you prevent abuse?",
+        "description": "A shortener is attractive to attackers because it hides where a link really goes. Link reputation is a product risk too: if email providers start blocking your domain, every customer suffers.",
+        "options": [
+          {
+            "label": "Limit how fast links are created",
+            "content": "Apply a sliding-window limit on POST /api/urls per user, with a broader one per IP. Return 429 with a Retry-After header.\n\nDon't rely only on IP limits, since a single office or mobile network can represent thousands of real users."
+          },
+          {
+            "label": "Check destinations",
+            "content": "Check each URL against a threat list such as Google Safe Browsing before saving it, and return 422 if it's flagged. This adds some latency to creating links, which is rare, and none to redirects.\n\nRe-scan existing links on a schedule. A destination can turn malicious after the link is created, and flagged links should be disabled."
+          },
+          {
+            "label": "Make scraping impractical",
+            "content": "Shuffled codes remove the sequence to walk through. With only about 0.05% of the code space in use, random guessing mostly finds nothing.\n\nRate limit redirects per client, and alert on clients with a high rate of 404s, which is a clear sign of scanning. Short links still aren't a security boundary, so anything sensitive needs real access control behind it."
           }
         ]
       }
     ],
     "levelExpectations": [
       {
-        "dimension": "ID Generation",
-        "mid": "Explain uniqueness + shortness requirements; propose one valid approach",
-        "senior": "Compare hash vs UUID vs Snowflake vs Machine ID with trade-offs for each",
-        "staff": "Design ID coordination across regions; handle clock skew and machine failures"
+        "dimension": "Code Generation",
+        "mid": "Compare a few options against uniqueness and length; choose one and justify it",
+        "senior": "Explain range allocation, including crash handling and why codes shouldn't be sequential",
+        "staff": "Explain why XOR falls short and what a keyed permutation provides; extend it to multiple regions"
       },
       {
-        "dimension": "Encoding Strategy",
-        "mid": "Explain Base62 encoding and calculate the ID space (62⁷ ≈ 3.5T)",
-        "senior": "Compare Base16/Base62/Base64 trade-offs; explain why special URL chars matter",
-        "staff": "Consider encoding implications for analytics, debugging, and obfuscation"
+        "dimension": "Data & Scaling",
+        "mid": "Estimate load and storage, then choose a database using those numbers",
+        "senior": "Separate read and write scaling; shard by a hash of the code when that's justified",
+        "staff": "Plan resharding, regional replication and the failover behavior for each path"
       },
       {
-        "dimension": "Scaling Strategy",
-        "mid": "Understand sharding concept and why it enables horizontal scaling",
-        "senior": "Design a shard key strategy; explain write-path independence and read routing",
-        "staff": "Handle shard rebalancing, hot shards, and cross-region consistency trade-offs"
+        "dimension": "Caching",
+        "mid": "Add a cache with the cache-aside pattern, and explain why reads benefit most",
+        "senior": "Derive the hit rate and size from the numbers; handle stampedes and hot keys",
+        "staff": "Design layered caching (in-process, Redis, edge), stating how stale each layer can be"
       },
       {
-        "dimension": "Caching & Performance",
-        "mid": "Include a cache layer; explain the cache-aside read pattern",
-        "senior": "Calculate cache hit ratios; design TTL and invalidation strategy",
-        "staff": "Design multi-tier caching; handle cache stampede and thundering herd"
+        "dimension": "Correctness",
+        "mid": "Explain 301 vs 302, and handle expiry with a check on read",
+        "senior": "Prevent false 404s on new links, and make deletion take effect through the cache",
+        "staff": "State the actual consistency window users experience, and what it would take to shrink it"
+      },
+      {
+        "dimension": "Analytics & Abuse",
+        "mid": "Keep click tracking out of the redirect path, using a queue",
+        "senior": "Bound the buffer and define what's lost in a failure; add rate limits and URL checks",
+        "staff": "Design for domain reputation, scanning detection and ongoing re-checks of destinations"
       }
     ],
     "keyPoints": [
-      "Write path: validate → encode auto-increment ID in Base62 → persist to DB → warm Redis cache",
-      "Read path: parse 7-char code → Redis GET (< 1 ms) → check expiry → 302 redirect; DB fallback on cache miss",
-      "7-char Base62 yields 62⁷ ≈ 3.5 trillion unique codes — effectively unlimited at any scale",
-      "301 (permanent) lets browsers cache forever; 302 (temporary) routes every click through your server for analytics",
-      "Decouple analytics: publish click events to Kafka; consume asynchronously into ClickHouse — keeps redirect path read-only against Redis",
-      "Fail-open on Redis outage: fall back to DB reads rather than returning errors — a slower redirect beats a broken link",
-      "Expired links: cache TTL ≤ expires_at so stale entries fall out of Redis naturally; a periodic job deletes expired rows from the DB to reclaim storage",
-      "Custom aliases skip the ID generator entirely — the user-chosen string is written directly as short_code after a uniqueness check"
+      "Create path: take the next ID from an in-memory block, shuffle it, encode in Base62, write to the database, then warm the cache",
+      "Redirect path: check Redis, fall back to the database on a miss, check expiry and deletion, then return a 302",
+      "Range allocation gives short, unique codes with no coordination per request. A crash wastes some IDs, which is harmless with 3.5T available",
+      "Shuffling with a keyed permutation makes codes hard to enumerate while keeping them unique. Simple XOR doesn't achieve this",
+      "302 sends every click through your servers, which makes analytics, expiry and deletion possible. A 301 gives all of that up for lower load",
+      "Publish click events after the response, in batches: an analytics outage should never affect redirects",
+      "At the stated scale, a relational primary with a replica and a cache is enough. Sharding is for growth, not for 12 writes a second",
+      "Before returning a 404, check the primary: a brand-new link may simply not have reached a replica yet"
     ]
   }
 }

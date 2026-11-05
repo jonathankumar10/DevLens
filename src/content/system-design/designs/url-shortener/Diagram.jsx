@@ -8,13 +8,13 @@ import StepControls from '../../../../components/ui/StepControls'
 
 const NODE_META = {
   client:     { label: 'Client',          icon: '💻', desc: 'Browser or mobile app making the request.' },
-  lb:         { label: 'API Gateway',     icon: '🔀',  desc: 'Routes POST → shortening, GET → redirect, and fans out GET to the analytics path too.' },
+  lb:         { label: 'API Gateway',     icon: '🔀',  desc: 'Authenticates, rate limits, and routes POST to shortening and GET to redirects.' },
   api:        { label: 'API Server',      icon: '⚙️',  desc: 'Validates requests, generates Base62 codes, orchestrates reads/writes.' },
   // The 'api' node is one physical tier playing two logical roles — labeled
-  // differently per phase since the deepDive content argues they scale independently.
+  // differently per phase, since reads and writes scale independently.
   apiByPhase: {
-    write: { label: 'URL Shortening Svc', desc: 'Validates the URL, generates the Base62 code, writes the mapping.' },
-    read:  { label: 'Request Handler',    desc: 'Cache-first lookup, checks expiry, issues the redirect.' },
+    write: { label: 'Shortening Service', desc: 'Validates the URL, generates the code, writes the link.' },
+    read:  { label: 'Redirect Service',   desc: 'Cache-first lookup, checks expiry and deletion, issues the redirect.' },
   },
   cache:      { label: 'Redis Cache',     icon: '⚡',  desc: 'In-memory key→value store. O(1) lookup, sub-millisecond reads.' },
   db:         { label: 'Database',        icon: '🗄️',  desc: 'Persistent store for all short_code → long_url mappings.' },
@@ -278,8 +278,8 @@ export default function UrlShortenerDiagram({ onStepChange }) {
       <PhaseBadge phase={step.phase} />
 
       {/* Architecture diagram */}
-      <div className="rounded-2xl border border-white/10 bg-[#070d1f] p-5 sm:p-6">
-        <div className="flex flex-col items-center gap-0">
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#070d1f] p-5 sm:p-6">
+        <div className="flex w-fit min-w-full flex-col items-center gap-0">
 
           {/* Client */}
           <NodeCard id="client" isActive={active.includes('client')} shortCode={shortCode} />
@@ -308,7 +308,7 @@ export default function UrlShortenerDiagram({ onStepChange }) {
               analytics → {counters, clickhouse}. Drawn on a fixed-size SVG
               canvas so every connector line starts and ends exactly at the
               node it links — nothing is left visually floating. */}
-          <div className="relative" style={{ width: BRANCH_W, height: BRANCH_H, maxWidth: '100%' }}>
+          <div className="relative" style={{ width: BRANCH_W, height: BRANCH_H }}>
             <svg className="absolute inset-0 pointer-events-none overflow-visible" viewBox={`0 0 ${BRANCH_W} ${BRANCH_H}`} width="100%" height={BRANCH_H}>
               {/* api → fan-out junction → cache / db / kafka */}
               <BranchLine x1={DB_X} y1={0} x2={DB_X} y2={JUNCTION_Y1} isActive={active.includes('api')} withArrow={false} stepKey={index} />

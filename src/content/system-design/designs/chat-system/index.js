@@ -2,20 +2,429 @@ import meta from './meta.js'
 
 export default {
   ...meta,
-  metaphor:    "A massive switchboard where each online user holds a live phone line (WebSocket) connected to the board. When User A sends a message to User B, the switchboard routes it directly to B's line if B is connected. If B's line is down (offline), the switchboard records the message and queues a callback notification so B gets it when they reconnect.",
-  howItWorks: [
-    'WebSocket connections: HTTP is request-response; chat requires the server to push messages to clients without waiting for a request. WebSockets provide a persistent bidirectional connection. Each client connects to a chat server and holds the connection open. Fallback: Server-Sent Events (SSE) for clients that can\'t maintain WebSocket connections.',
-    'Connection routing: with thousands of chat servers, a message sent from User A on Server 1 to User B on Server 2 requires routing. A presence service (backed by Redis) maps user ID to connected server ID. The sending server looks up the recipient\'s server and forwards the message via an internal message bus (Kafka) or direct server-to-server connection.',
-    'Message storage: store messages in a column-family store like Cassandra or HBase, keyed by conversation ID + message ID (a time-ordered sequence number). This access pattern — give me all messages in conversation X after message Y — maps perfectly to a range scan on the primary key. Avoid relational databases for high-volume message storage.',
-    'Message ordering with sequence IDs: clients cannot trust wall-clock timestamps for ordering (clocks drift). Use a distributed sequence ID generator (Snowflake, Twitter\'s algorithm) that produces monotonically increasing 64-bit IDs encoding a timestamp, machine ID, and sequence. Messages within a conversation are ordered by sequence ID.',
-    'Presence service: track who is online using a heartbeat mechanism — clients ping the server every 5 seconds. Presence state is stored in Redis with a short TTL. The last-seen timestamp updates on every heartbeat. Group chat presence fanout: when User A joins a group with 100 members, the system must notify 100 connections — use pub/sub to broadcast to all group members\' servers.',
-    'Offline delivery: when a message is sent to an offline user, the server persists it normally and triggers the notification system (push notification via APNs/FCM). When the user comes back online, the client syncs missed messages by requesting all messages after its last known sequence ID — no "you missed X messages" summary, just a replay.',
+  metaphor: "A switchboard where every online user holds a live phone line. A message goes on record first, then the switchboard rings the recipient's line. If nobody picks up, it leaves a note on their door, and they catch up from the record when they return.",
+
+  requirements: {
+    functional: [
+      'One-on-one and group conversations, with groups capped at 500 members',
+      'Messages reach online recipients in real time, without the client polling',
+      'Offline recipients get a push notification, then catch up on missed messages when they reconnect',
+      'Message history persists and syncs across a user\'s devices',
+      'Sent, delivered and read status for each message',
+      'Online and last-seen presence for contacts',
+    ],
+    nonFunctional: [
+      'Low latency: under 200 ms p99 between two online users in the same region',
+      'Durability: once the sender sees "sent", the message is never lost',
+      'Delivery: at-least-once on the wire, with duplicates removed so users see each message once',
+      'Ordering: every participant sees a conversation in the same order',
+      'High availability: 99.99%, preferring availability over strong consistency for presence and receipts',
+      'Scale: 100M concurrent connections, with a stateful connection tier that can fail without losing data',
+    ],
+    scale: [
+      '500M DAU sending 40 messages a day → 20B messages/day',
+      '20B / 86,400 ≈ 230K messages/sec average, ~700K/sec at 3× peak',
+      'Storage: 20B × ~300 bytes ≈ 6 TB/day, or ~2.2 PB/year before replication',
+      'Connections: 20% of DAU online at peak = 100M; at ~100K per server → ~1,000 gateway servers',
+    ],
+    outOfScope: [
+      'Voice and video calls',
+      'Full-text message search',
+      'Message editing and reactions',
+      'Media processing: files upload directly to object storage, and messages carry a reference to them',
+    ],
+  },
+
+  dataModel: [
+    {
+      entity: 'Message',
+      note: 'Immutable and append-only. Partitioned by conversation, so loading history is one range scan',
+      fields: [
+        { name: 'conversation_id', type: 'BIGINT',    note: 'Partition key, with bucket: all of a conversation\'s messages live together' },
+        { name: 'bucket',          type: 'INT',       note: 'Partition key: a time window (e.g. 10 days) that stops busy conversations growing without limit' },
+        { name: 'message_id',      type: 'BIGINT',    note: 'Clustering key, descending: a Snowflake ID, so newest-first reads are a simple scan' },
+        { name: 'sender_id',       type: 'BIGINT',    note: 'Who sent it' },
+        { name: 'client_msg_id',   type: 'UUID',      note: 'Generated by the client: identifies retries so they can be removed as duplicates' },
+        { name: 'body',            type: 'TEXT',      note: 'Message text' },
+        { name: 'media_url',       type: 'TEXT',      note: 'Nullable: object storage reference for attachments' },
+      ],
+    },
+    {
+      entity: 'Conversation',
+      note: 'One row per conversation, cached aggressively because it rarely changes',
+      fields: [
+        { name: 'id',         type: 'BIGINT',    note: 'PK' },
+        { name: 'type',       type: 'ENUM',      note: 'direct or group' },
+        { name: 'title',      type: 'TEXT',      note: 'Nullable: group name' },
+        { name: 'created_at', type: 'TIMESTAMP', note: 'Default NOW()' },
+      ],
+    },
+    {
+      entity: 'ConversationMember',
+      note: 'Holds per-member read state, so receipts are one pointer rather than one row per message',
+      fields: [
+        { name: 'conversation_id',   type: 'BIGINT', note: 'PK part 1' },
+        { name: 'user_id',           type: 'BIGINT', note: 'PK part 2, plus a reverse index for "my conversations"' },
+        { name: 'last_delivered_id', type: 'BIGINT', note: 'Everything up to this message has reached one of the user\'s devices' },
+        { name: 'last_read_id',      type: 'BIGINT', note: 'Everything up to this message has been read' },
+      ],
+    },
+    {
+      entity: 'Device',
+      note: 'One user has several devices, and each one syncs independently',
+      fields: [
+        { name: 'id',           type: 'UUID',   note: 'PK' },
+        { name: 'user_id',      type: 'BIGINT', note: 'Indexed: find every device to notify' },
+        { name: 'push_token',   type: 'TEXT',   note: 'APNs or FCM token for offline notifications' },
+        { name: 'last_sync_id', type: 'BIGINT', note: 'Sync cursor: the newest message this device has stored' },
+      ],
+    },
   ],
+
+  apiDesign: [
+    {
+      method: 'WS',
+      path: '/v1/chat/connect',
+      description: 'Open the persistent connection. All real-time traffic flows over it as JSON frames',
+      reqBody: `Authorization: Bearer <token>\nUpgrade: websocket\n\n// Client sends every 30 s:\n{ "type": "heartbeat" }`,
+      resBody: `101 Switching Protocols\n\n// Server pushes:\n{ "type": "message", "conversation_id": 42, "message_id": 7204, "sender_id": 9, "body": "Hi!" }\n{ "type": "receipt", "conversation_id": 42, "user_id": 9, "last_read_id": 7204 }\n{ "type": "presence", "user_id": 9, "status": "online" }`,
+    },
+    {
+      method: 'WS',
+      path: 'send frame',
+      description: 'Send a message. The client retries with the same client_msg_id until it receives the ack',
+      reqBody: `{\n  "type": "send",\n  "conversation_id": 42,\n  "client_msg_id": "7f3c9a10-2b",\n  "body": "Hi!"\n}`,
+      resBody: `{\n  "type": "ack",\n  "client_msg_id": "7f3c9a10-2b",\n  "message_id": 7204\n}\n\n// The ack means the message is durable: the client can show "sent"`,
+    },
+    {
+      method: 'WS',
+      path: 'receipt frame',
+      description: 'Move the delivered or read pointer. One frame can cover many messages',
+      reqBody: `{\n  "type": "receipt",\n  "conversation_id": 42,\n  "last_read_id": 7204\n}`,
+      resBody: null,
+    },
+    {
+      method: 'GET',
+      path: '/v1/sync?after={lastSyncId}&limit=200',
+      description: 'Catch up after reconnecting, across all conversations',
+      reqBody: null,
+      resBody: `200 OK\n{\n  "messages": [ ... ],\n  "next_cursor": "7310",\n  "has_more": true\n}`,
+    },
+    {
+      method: 'GET',
+      path: '/v1/conversations/{id}/messages?before={messageId}&limit=50',
+      description: 'Page backwards through a conversation\'s history',
+      reqBody: null,
+      resBody: `200 OK\n{\n  "messages": [ ... ],\n  "next_cursor": "6950"\n}\n\n// 403 Forbidden if the caller isn't a member`,
+    },
+    {
+      method: 'POST',
+      path: '/v1/conversations',
+      description: 'Create a direct or group conversation',
+      reqBody: `{\n  "type": "group",\n  "title": "Launch team",\n  "member_ids": [9, 14, 27]\n}`,
+      resBody: `201 Created\n{\n  "id": 42,\n  "type": "group"\n}\n\n// 422 Unprocessable Entity above the 500-member limit`,
+    },
+  ],
+
+  hldFlows: [
+    {
+      title: '1. Holding a connection',
+      description: 'Chat needs the server to reach the client at any moment, so each client opens a WebSocket to a gateway server. Gateways do one job: hold connections and move frames. Keeping business logic out of them means they rarely need deploying, which matters because every restart disconnects up to 100K users. When a connection opens, the gateway writes user → gateway to a session registry in Redis with a short TTL, refreshed by heartbeats. If a gateway dies, its entries expire by themselves.',
+      flow: [
+        { label: 'Client',           icon: '💻', note: 'Opens a WebSocket' },
+        { label: 'Load Balancer',    icon: '🔀', note: 'Layer 4: picks the least-loaded gateway' },
+        { label: 'Gateway',          icon: '🔌', note: 'Holds the connection, authenticates once' },
+        { label: 'Session Registry', icon: '⚡', note: 'Redis: user → gateway, with a TTL' },
+      ],
+    },
+    {
+      title: '2. Sending a message',
+      description: 'The rule on the write path is to make the message durable first and deliver it second. The Chat Service checks membership, removes duplicates using client_msg_id, assigns a Snowflake ID and writes to Cassandra at quorum. Only then does it ack the sender, so "sent" is a promise the system can keep. It then publishes to Kafka and returns. Delivery happens asynchronously, so a slow recipient or a huge group can never delay the sender.',
+      flow: [
+        { label: 'Sender',       icon: '💻', note: 'Send frame with client_msg_id' },
+        { label: 'Gateway',      icon: '🔌', note: 'Forwards to the Chat Service' },
+        { label: 'Chat Service', icon: '⚙️', note: 'Check membership, dedupe, assign ID' },
+        [
+          { label: 'Cassandra', icon: '🗄️', note: 'Quorum write, then ack the sender' },
+          { label: 'Kafka',     icon: '📨', note: 'Publish for delivery, after the write' },
+        ],
+      ],
+    },
+    {
+      title: '3. Delivering a message',
+      description: 'Fan-out workers consume from Kafka, partitioned by conversation_id so one conversation\'s messages are handled in order. For each member they check the session registry. An online member\'s gateway receives the message over an internal RPC and pushes it down the socket. An offline member gets a push notification instead. A push is only a hint that carries no guarantee, so the source of truth stays in Cassandra and the client syncs when it reconnects.',
+      preFlow: [
+        { label: 'Kafka',          icon: '📨', note: 'Partitioned by conversation_id' },
+        { label: 'Fan-out Worker', icon: '⚙️', note: 'Loads members, checks the registry' },
+      ],
+      branches: [
+        {
+          label: 'Recipient online',
+          nodes: [
+            { label: 'Their Gateway', icon: '🔌', note: 'Internal RPC to the server holding the socket' },
+            { label: 'Recipient',     icon: '📱', note: 'Pushed over the WebSocket, then acks' },
+          ],
+        },
+        {
+          label: 'Recipient offline',
+          nodes: [
+            { label: 'Push Service', icon: '🔔', note: 'APNs or FCM, batched and best-effort' },
+            { label: 'Recipient',    icon: '📱', note: 'Opens the app later' },
+            { label: 'Sync API',     icon: '🔄', note: 'Fetches everything after its cursor' },
+          ],
+        },
+      ],
+    },
+    {
+      title: '4. Receipts and presence',
+      description: 'These two features generate more events than the messages themselves, so neither one is allowed to touch the message path. A receipt moves a single per-member pointer, so a client that has read 50 messages sends one update rather than 50. Presence lives only in Redis, because it\'s cheap to rebuild and doesn\'t need to be durable. Losing it for a few seconds is an acceptable failure.',
+      flow: [
+        { label: 'Client',  icon: '💻', note: 'Receipt frame or heartbeat' },
+        { label: 'Gateway', icon: '🔌', note: 'Batches and routes' },
+        [
+          { label: 'Member Store',   icon: '🗄️', note: 'Moves last_read_id forward' },
+          { label: 'Presence Redis', icon: '⚡', note: 'TTL refreshed on each heartbeat' },
+        ],
+      ],
+    },
+  ],
+
   keyPoints: [
-    'WebSockets for live connections; Kafka or Redis Pub/Sub for cross-server message routing; Cassandra for message storage — these three together form the core of every real-time chat system',
-    'Use a distributed sequence ID generator, not wall-clock timestamps, for message ordering — clients\' clocks are unreliable and can be set backwards',
-    'Presence at scale is expensive: updating 1,000 group members that one person went offline generates 1,000 writes. Cap group fanout — WhatsApp limits groups to 256; Slack uses coarse presence ("active/away") rather than per-user real-time updates',
-    'Message storage access pattern: retrieve all messages in a conversation, paginated backwards from the newest. This is exactly what Cassandra\'s partition key (conversation ID) + clustering key (message ID) optimizes for',
-    'End-to-end encryption (Signal protocol) means the server stores and routes opaque ciphertext — it cannot read messages. This is a product and legal decision as much as a technical one: server-side search and compliance logging become impossible',
+    'Durable first, deliver second: ack the sender only after the quorum write, and fan out asynchronously so recipients can never slow a sender down',
+    'Gateways only hold connections. Keeping them free of business logic limits how often deploys disconnect users',
+    'Reliability comes from combining at-least-once delivery, a client-generated ID to remove duplicates, and sync from a cursor',
+    'Partition messages by conversation and time bucket, so history is one range scan and busy conversations can\'t build giant partitions',
+    'Push notifications are only hints. The message store is the source of truth, and clients recover by syncing',
+    'Receipts are per-member pointers rather than per-message rows, which removes most of their write volume',
+    'Fan-out cost grows with group size. Small groups can push to everyone, while very large channels must let clients pull',
+    'Presence is the first thing to degrade under load: it\'s expensive to fan out, and its data is disposable',
+  ],
+
+  deepDive: [
+    {
+      level: 'mid',
+      question: 'How does the server push messages to a client?',
+      description: 'HTTP is request-response, but a chat server has to reach clients the moment something happens. Each option below is a different answer to that, with different costs at 100M connected users.',
+      options: [
+        {
+          label: 'Option 1: Short polling',
+          content: 'Method: the client asks "anything new?" every few seconds.\n\nPros: simple, and works with any HTTP infrastructure.\n\nDrawback: most responses are empty, and latency equals the polling interval. With 100M clients polling every 5 seconds, that\'s 20M requests/sec, around 30 times the actual peak message rate.',
+        },
+        {
+          label: 'Option 2: Long polling',
+          content: 'Method: the server holds each request open until there\'s data or a timeout, then the client immediately asks again.\n\nPros: low latency, and no empty responses in the common case.\n\nDrawback: each message requires a new HTTP request with full headers, and sending still uses a separate connection. It suits occasional updates much better than a busy conversation.',
+        },
+        {
+          label: 'Option 3: Server-Sent Events',
+          content: 'Method: a one-way stream from server to client over plain HTTP.\n\nPros: simple, reconnects automatically, and works well through proxies.\n\nDrawback: sending still needs separate HTTP requests. It\'s a strong fit for one-way feeds, such as streaming LLM responses, and a weaker one for a two-way conversation.',
+        },
+        {
+          label: 'Option 4: WebSockets',
+          badge: 'Chosen',
+          content: 'Method: an HTTP upgrade to one persistent, two-way connection with only a few bytes of overhead per frame.\n\nWhy this wins: chat is two-way and frequent, so one long-lived connection is the cheapest way to carry it.\n\nTrade-off: connections are stateful. You need a registry to find which server holds a user, and load balancing and deploys become harder. The rest of this design exists largely to manage that state.',
+        },
+      ],
+    },
+    {
+      level: 'mid',
+      question: 'Which database should store messages?',
+      description: 'Start from how the data is used: writes are constant and never update, and reads almost always mean "the latest messages in this conversation". Cross-conversation queries are rare.',
+      options: [
+        {
+          label: 'Option 1: Relational database',
+          content: 'Pros: transactions, flexible queries, and a familiar operating model.\n\nDrawback: 700K writes/sec at peak and petabytes of data mean sharding by hand. Once you\'ve done that, joins and cross-shard transactions are gone anyway, so you keep the costs without most of the benefits.\n\nBest for: conversation and membership data, which is small and relational.',
+        },
+        {
+          label: 'Option 2: Wide-column store (Cassandra, ScyllaDB)',
+          badge: 'Chosen',
+          content: 'Structure: the partition key is (conversation_id, bucket) and the clustering key is message_id descending.\n\nWhy this wins: the main query becomes one sequential read from one partition, the write path is optimized for appends, and capacity grows by adding nodes.\n\nTrade-off: you must design for your queries up front, there\'s no ad hoc querying, and deletes create tombstones that slow reads if they aren\'t managed. Discord has written publicly about running into exactly this on Cassandra.',
+        },
+        {
+          label: 'Why the bucket matters',
+          badge: 'Key Insight',
+          content: 'Partitioning by conversation_id alone means a years-old busy group becomes one enormous partition. Reads slow down, compaction struggles, and that one partition can\'t be split.\n\nAdding a time bucket caps partition size. The trade-off is that loading history may have to read several buckets, walking backwards until the page is full. Most reads only want recent messages, so they stay within one or two buckets.',
+        },
+      ],
+    },
+    {
+      level: 'senior',
+      question: 'How do you find the server holding the recipient\'s connection?',
+      description: 'Sender and recipient are usually on different gateways. With 1,000 gateways and 100M connections, you need a way to route a message to the right machine.',
+      options: [
+        {
+          label: 'Option 1: Broadcast to every gateway',
+          content: 'Method: publish each message to all gateways, and each one checks whether it holds the recipient.\n\nDrawback: at 700K messages/sec, every gateway processes the entire global message stream. Cost grows with the number of gateways multiplied by the message rate, so it fails as soon as you scale.',
+        },
+        {
+          label: 'Option 2: Redis Pub/Sub per user',
+          content: 'Method: each gateway subscribes to a channel for every user it holds, and senders publish to the recipient\'s channel.\n\nPros: simple, and no registry lookup is required.\n\nDrawback: 100M active subscriptions is a significant load, and Pub/Sub keeps nothing for a subscriber that blips. It\'s a reasonable choice at smaller scale, with the database still covering any misses.',
+        },
+        {
+          label: 'Option 3: Session registry and direct RPC',
+          badge: 'Chosen',
+          content: 'Method: Redis maps user → gateway. A fan-out worker looks up each recipient, then calls that gateway directly.\n\nWhy this wins: each message reaches only the servers that need it, and batching one RPC per gateway keeps group fan-out efficient.\n\nTrade-off: the registry can be briefly stale. If a call reaches a gateway the user has left, it fails and the worker falls back to a push notification. That\'s safe because the message is already durable, and the client will sync it.',
+        },
+      ],
+    },
+    {
+      level: 'senior',
+      question: 'How do you guarantee messages are never lost or shown twice?',
+      description: 'Networks fail at the worst moments. If an ack is lost, the sender can\'t tell whether its message was stored. Exactly-once delivery isn\'t achievable across an unreliable network, but exactly-once display is.',
+      options: [
+        {
+          label: 'Sender to server: retry with an idempotency key',
+          content: 'The client generates client_msg_id once, then retries with the same value until it gets an ack.\n\n1. The first attempt is stored, but its ack is lost\n2. The client retries with the same ID\n3. The server recognizes it and returns the original message_id, without storing a second copy\n\nFor this check, keep recent IDs per conversation in Redis with a TTL of a few minutes, longer than the client\'s retry window.',
+        },
+        {
+          label: 'Server to recipient: acks and a cursor',
+          content: 'Each device acks the messages it receives and stores the newest ID as its cursor. Any gap, whether from a dropped socket or a crashed gateway, gets repaired the same way: on reconnect, the client asks for everything after its cursor.\n\nIf a message arrives twice, the client ignores it because it already has that message_id.',
+        },
+        {
+          label: 'The three parts work as one',
+          badge: 'Key Insight',
+          content: 'At-least-once delivery means nothing is lost. Removing duplicates by ID means nothing appears twice. Together they look like exactly-once to the user, without needing any impossible distributed guarantee.\n\nThis also simplifies failure handling. A crashed worker or gateway needs no special recovery path, because retries and sync already cover it.',
+        },
+      ],
+    },
+    {
+      level: 'senior',
+      question: 'How do you keep messages in a consistent order?',
+      description: 'Participants must agree on the order, and a sync cursor needs IDs that sort. Different ID schemes make different trade-offs between ordering strength and coordination.',
+      options: [
+        {
+          label: 'Option 1: Server timestamps',
+          content: 'Drawback: clocks on different servers drift apart, and two messages in the same millisecond have no defined order. They also don\'t give you a unique ID, so you\'d need a separate one anyway.',
+        },
+        {
+          label: 'Option 2: Per-conversation counter',
+          content: 'Method: a strict 1, 2, 3 sequence for each conversation.\n\nPros: a perfect order, and gaps reveal missing messages immediately.\n\nDrawback: every send must coordinate on one counter for that conversation. That adds a dependency and a hop to the write path, and failing over the counter safely is hard. It\'s worthwhile if you need strict ordering, such as with a ledger.',
+        },
+        {
+          label: 'Option 3: Snowflake IDs',
+          badge: 'Chosen',
+          content: 'Structure: a 64-bit ID made up of a timestamp, a machine ID and a per-machine sequence.\n\nWhy this wins: IDs are unique and sortable, and any server can generate them with no coordination. All clients sort by the same ID, so they all agree on one order.\n\nTrade-off: two messages sent within the clock skew between servers may sort differently from how they were actually sent. For human conversation that\'s rarely noticeable, since people don\'t usually reply within milliseconds.',
+        },
+        {
+          label: 'The catch: sync cursors',
+          badge: 'Key Insight',
+          content: 'Snowflake IDs are only roughly ordered, so a message can be stored just after a device has synced past its ID. A cursor that strictly asks for "everything after X" would miss it forever.\n\nFix: make each sync re-read a small overlap, a few seconds before the cursor, and remove duplicates on the client. It costs a little extra reading and closes the gap without adding any coordination to the write path.',
+        },
+      ],
+    },
+    {
+      level: 'senior',
+      question: 'How does group delivery scale?',
+      description: 'A message to a group of 500 creates up to 500 deliveries. Very large channels change the math enough to need a different model.',
+      options: [
+        {
+          label: 'Push to every member',
+          content: 'Method: a fan-out worker looks up all members and sends a batched RPC to each gateway involved.\n\nPros: lowest latency, and the delivery path is the same as for one-on-one messages.\n\nBest for: groups up to a limit you choose, which is why this design caps groups at 500. The sender is unaffected either way, since fan-out is asynchronous.',
+        },
+        {
+          label: 'Clients pull on notification',
+          content: 'Method: the server sends a lightweight "channel X has new messages" signal, and only clients viewing that channel fetch the content.\n\nPros: cost follows actual attention. In a channel with 100K members, most aren\'t looking at any given moment.\n\nTrade-off: slightly higher latency, and an extra read per active viewer.\n\nBest for: very large channels and broadcast-style communities.',
+        },
+        {
+          label: 'Choosing between them',
+          badge: 'Decision Guide',
+          content: 'Use group size as the switch. Most conversations are small, so pushing suits them, and the rare huge channels switch to pull.\n\nThe same reasoning applies to social feeds: fan-out on write for normal users, and fan-out on read for accounts with millions of followers.',
+        },
+      ],
+    },
+    {
+      level: 'staff',
+      question: 'How do you make presence affordable?',
+      description: 'Presence looks like a small feature, but it can generate more traffic than messaging. If each status change is pushed to all of a user\'s contacts, then 100M people going on and offline produce enormous fan-out, for information that\'s often never looked at.',
+      options: [
+        {
+          label: 'Subscribe only to what\'s on screen',
+          badge: 'Chosen',
+          content: 'Method: a client subscribes to presence only for contacts it is currently displaying, and unsubscribes when they scroll away.\n\nWhy this wins: cost now tracks what users are actually looking at, not the size of their contact lists. Everyone else\'s status can be fetched on demand when needed.',
+        },
+        {
+          label: 'Smooth out the flapping',
+          content: 'Phones lose signal all the time. Without a delay, each brief drop broadcasts offline and then online again.\n\nFix: wait for a grace period, typically 30-60 seconds of missed heartbeats, before announcing that someone is offline. Batch the updates that do go out.',
+        },
+        {
+          label: 'Plan how it degrades',
+          badge: 'Key Insight',
+          content: 'Presence is the feature to sacrifice under load. Under pressure, stop sending live updates and show only coarse status from the last known value.\n\nDeciding this in advance, and building a switch for it, protects messaging during an incident. Nobody should be debating which features to shed in the middle of an outage.',
+        },
+      ],
+    },
+    {
+      level: 'staff',
+      question: 'What happens when a gateway dies or you need to deploy?',
+      description: 'Stateful connections change how failure works. When a gateway with 100K connections dies, 100K clients all try to reconnect at once, and the resulting surge can take down the servers that were healthy.',
+      options: [
+        {
+          label: 'Prevent the reconnect storm',
+          badge: 'Chosen',
+          content: 'Fix: clients reconnect using exponential backoff with random jitter, which spreads the surge over tens of seconds instead of one instant.\n\nOn the server, rate limit new connections per gateway, and keep spare capacity so losing a server or two doesn\'t push others over the limit. Each reconnect also triggers a sync, so the sync API has to survive the same surge.',
+        },
+        {
+          label: 'Deploy without dropping everyone',
+          content: 'Method: drain each gateway gradually. It stops accepting new connections, then tells existing clients in small batches to move elsewhere over a period of minutes.\n\nKeeping business logic in the Chat Service means most releases never touch gateways, and that\'s the biggest protection of all.',
+        },
+        {
+          label: 'Why no messages are lost',
+          badge: 'Key Insight',
+          content: 'Messages are durable before delivery starts, so gateways hold no data that matters. A dead gateway only loses connections, and its registry entries expire through their TTL.\n\nEverything undelivered gets picked up by the same sync path clients always use. A design with no special recovery logic is much more likely to work during a real failure.',
+        },
+      ],
+    },
+    {
+      level: 'staff',
+      question: 'How do multiple devices and end-to-end encryption change the design?',
+      description: 'Both features seem like add-ons, but they change where state lives and what the server is able to do.',
+      options: [
+        {
+          label: 'Multiple devices',
+          content: 'Method: each device keeps its own cursor and connection. The registry maps a user to several gateways, and a user\'s own sent messages also fan out to their other devices.\n\nRead state is different: it\'s per user, not per device. Reading on a phone should clear the unread badge on a laptop, so receipts are also pushed to the user\'s other devices.',
+        },
+        {
+          label: 'End-to-end encryption',
+          content: 'Method: with a protocol such as Signal, clients encrypt messages so the server only stores and routes ciphertext.\n\nTrade-off: this removes server-side search, content moderation and server-rendered notification previews. It\'s as much a product and policy decision as a technical one.\n\nFan-out also changes: each recipient device needs its own encrypted copy or a shared group key, so groups become more complex and device changes trigger key updates.',
+        },
+        {
+          label: 'Which should you raise in an interview?',
+          badge: 'Decision Guide',
+          content: 'Name these as explicit decisions and state what each one costs. Don\'t design all of E2EE unless the interviewer asks.\n\nThe strong signal is recognizing that encryption moves work and capability from the server to the client, and that it affects search, moderation and multi-device sync.',
+        },
+      ],
+    },
+  ],
+
+  levelExpectations: [
+    {
+      dimension: 'Connections',
+      mid:    'Choose WebSockets and explain why polling is a poor fit',
+      senior: 'Separate gateways from logic; design the session registry and routing between servers',
+      staff:  'Handle reconnect storms, graceful draining and how deploys affect stateful connections',
+    },
+    {
+      dimension: 'Reliability',
+      mid:    'Persist messages and handle offline users with push notifications',
+      senior: 'Combine acks, idempotency keys and cursor sync to avoid lost or duplicate messages',
+      staff:  'Show that failures need no special recovery path; define what degrades first under load',
+    },
+    {
+      dimension: 'Ordering',
+      mid:    'Explain why client timestamps can\'t be trusted',
+      senior: 'Compare Snowflake IDs with per-conversation counters and justify a choice',
+      staff:  'Identify the sync-cursor gap that roughly ordered IDs create, and close it',
+    },
+    {
+      dimension: 'Storage',
+      mid:    'Choose a database that suits append-heavy writes, with a reasonable schema',
+      senior: 'Design partition and clustering keys around the main query; explain time buckets',
+      staff:  'Plan for hot partitions, tombstones, retention and multi-region replication',
+    },
+    {
+      dimension: 'Fan-out',
+      mid:    'Deliver a group message to every online member',
+      senior: 'Make fan-out asynchronous, and batch deliveries per gateway',
+      staff:  'Switch between push and pull by group size; keep presence costs tied to what users view',
+    },
   ],
 }

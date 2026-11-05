@@ -1,16 +1,17 @@
 /**
  * URL Shortener architecture step trace.
  *
- * Two phases:
+ * Three phases:
  *   write — user submits a long URL → get a short code back
  *   read  — user visits the short URL → gets redirected to the original
+ *   analytics — the click is counted asynchronously, after the redirect
  *
- * Node IDs: client | lb | api | cache | db
+ * Node IDs: client | lb | api | cache | db | kafka | analytics | counters | clickhouse
  *
  * Layout (vertical stack):
  *   client
  *     ↓
- *   lb  (load balancer)
+ *   lb  (API gateway)
  *     ↓
  *   api (app server)
  *    ↓ ↓
@@ -35,7 +36,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: null,
       message: 'User submits a long URL to shorten.',
       detail:
-        'POST /api/shorten  { url: "https://example.com/very/long/article?ref=newsletter" }\n\nThe client may be a browser, a mobile app, or another service.',
+        'POST /api/urls  { url: "https://example.com/very/long/article?ref=newsletter" }\n\nThe client may be a browser, a mobile app, or another service.',
       shortCode: null,
     },
     {
@@ -45,7 +46,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: { from: 'client', to: 'lb' },
       message: 'Request hits the API Gateway.',
       detail:
-        'The API Gateway is the single entry point for all traffic. For this POST, it routes the request to the URL Shortening Service — the same gateway will route GET requests to the Redirection Handler instead.',
+        'The API Gateway is the single entry point. It authenticates the request, applies rate limits, and routes this POST to the Shortening Service. GET requests go to the Redirect Service instead.',
       shortCode: null,
     },
     {
@@ -53,9 +54,9 @@ export function buildUrlShortenerSteps() {
       phase: 'write',
       activeNodes: ['lb', 'api'],
       activeArrow: { from: 'lb', to: 'api' },
-      message: 'URL Shortening Service receives and validates the request.',
+      message: 'The Shortening Service receives and validates the request.',
       detail:
-        'The server validates the URL format, checks rate limits, and optionally deduplicates (returns the same short code if the URL was already shortened).',
+        'The service validates the URL and checks it against a threat list. Each request creates a new link, even for a URL that has been shortened before, so every link has its own owner and analytics.',
       shortCode: null,
     },
     {
@@ -65,7 +66,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: null,
       message: 'Server generates a unique 7-char Base62 code.',
       detail:
-        'A unique integer ID is generated (auto-increment or Snowflake ID), then encoded in Base62 (a–z, A–Z, 0–9). 7 chars → 62⁷ ≈ 3.5 trillion combinations.',
+        'The server takes the next ID from a block it holds in memory, shuffles it so codes aren\'t sequential, then encodes it in Base62 (0-9, A-Z, a-z). 7 chars give 62⁷ ≈ 3.5 trillion codes.',
       shortCode: 'aB3xK9z',
     },
     {
@@ -85,7 +86,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: { from: 'api', to: 'db' },
       message: 'Mapping is persisted to the database.',
       detail:
-        'Schema: { id, short_code, long_url, created_at, user_id, is_custom, expires_at }\n\nWrite to DB first (source of truth), then warm the cache. Use a relational DB for consistency or Cassandra for high write throughput.',
+        'Schema: { short_code, long_url, user_id, is_custom, expires_at, deleted_at, created_at }\n\nThe database is the source of truth, so write here first and warm the cache second. The primary key guarantees uniqueness.',
       shortCode: 'aB3xK9z',
     },
     {
@@ -95,7 +96,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: { from: 'api', to: 'cache' },
       message: 'Short code is written to Redis cache.',
       detail:
-        'Cache-aside strategy: after the DB write succeeds, populate Redis with key = short_code, value = long_url, TTL = 24 h. Hot URLs stay warm automatically.',
+        'After the database write succeeds, add the link to Redis with a 24-hour TTL, or less if it expires sooner. New links tend to get clicked right away, so the first redirect is already a cache hit.',
       shortCode: 'aB3xK9z',
     },
     {
@@ -127,7 +128,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: { from: 'client', to: 'lb' },
       message: 'Request hits the API Gateway.',
       detail:
-        'The same gateway as the write path — but this time it\'s a GET, so it routes to the Redirection Handler (and, as covered in the analytics flow, fans out a click event toward the analytics pipeline too).',
+        'The same gateway as the write path, but this is a GET, so it routes to the Redirect Service. This path handles about 100 times more traffic than creating links.',
       shortCode: 'aB3xK9z',
     },
     {
@@ -135,7 +136,7 @@ export function buildUrlShortenerSteps() {
       phase: 'read',
       activeNodes: ['lb', 'api'],
       activeArrow: { from: 'lb', to: 'api' },
-      message: 'Request Handler parses the short code "aB3xK9z".',
+      message: 'The Redirect Service parses the short code "aB3xK9z".',
       detail:
         'The server extracts the 7-character code from the path and prepares a lookup. It checks the cache first before going to the database.',
       shortCode: 'aB3xK9z',
@@ -199,7 +200,7 @@ export function buildUrlShortenerSteps() {
       activeArrow: { from: 'analytics', to: 'counters' },
       message: 'Redis counter is incremented for this short code.',
       detail:
-        'INCR rl:{short_code}:{YYYY-MM-DD-HH}\n\nGives a real-time count (e.g. "clicks in the last hour") cheaply, without writing to a database on every single click.',
+        'INCR clicks:{short_code}:{YYYY-MM-DD-HH}\n\nGives a live count (e.g. "clicks in the last hour") cheaply, without writing to a database on every click.',
       shortCode: 'aB3xK9z',
     },
     {
