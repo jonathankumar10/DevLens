@@ -11,8 +11,8 @@
 const WAIT_LIMIT_MS = 1000 // A saturated queue stops growing here: clients give up.
 const TIMEOUT_MS    = 3000 // Upper bound on any reported latency.
 
-export const BUSY_AT = 0.7
-export const HOT_AT  = 0.9
+const BUSY_AT = 0.7
+const HOT_AT  = 0.9
 
 // ── Node state ───────────────────────────────────────────────────────────────
 
