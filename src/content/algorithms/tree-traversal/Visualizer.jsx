@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { buildTraversalSteps, DEFAULT_TREE } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, SecondaryButton, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 function parseLevelOrder(input) {
   const tokens = input.split(',').map((s) => s.trim().toLowerCase())
@@ -163,26 +164,26 @@ export default function TreeTraversalVisualizer({ onStepChange, onOrderChange })
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Tree Traversal</h2>
-          <p className="text-sm text-slate-400">Nodes light up as they're visited.</p>
-        </div>
-        <div className="flex rounded-xl overflow-hidden border border-white/10">
-          {ORDERS.map((o) => (
-            <button key={o} onClick={() => handleOrderChange(o)}
-              className={`px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
-                order === o ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
-              }`}>
-              {o}
-            </button>
-          ))}
-        </div>
-      </div>
+      <VizHeader
+        title="Tree Traversal"
+        subtitle="Nodes light up as they're visited."
+        aside={
+          <div className="flex rounded-xl overflow-hidden border border-white/10">
+            {ORDERS.map((o) => (
+              <button key={o} onClick={() => handleOrderChange(o)}
+                className={`px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+                  order === o ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                }`}>
+                {o}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Build your own tree</p>
+      <InputPanel
+        title="Build your own tree"
+        aside={
           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
             isBST
               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
@@ -190,47 +191,26 @@ export default function TreeTraversalVisualizer({ onStepChange, onOrderChange })
           }`}>
             {isBST ? '✓ Valid BST' : '~ Not a BST'}
           </span>
-        </div>
+        }
+        fields={[{
+          label: <>Level-order values (comma-separated, use <span className="font-mono">null</span> for missing nodes)</>,
+          value: draftInput, onChange: setDraftInput, placeholder: 'e.g. 4, 2, 6, 1, 3, 5, 7', width: 'flex-1 min-w-0',
+        }]}
+        onRun={handleApply}
+        runLabel="Apply"
+        actions={<SecondaryButton onClick={handleReset}>Reset</SecondaryButton>}
+        error={inputError}
+        examplesLabel="Example trees"
+        examples={[
+          { label: 'BST: 4,2,6,1,3,5,7', onClick: () => { setDraftInput('4, 2, 6, 1, 3, 5, 7'); setInputError(null) } },
+          { label: 'Non-BST: 1,5,2,7,3,9,4', onClick: () => { setDraftInput('1, 5, 2, 7, 3, 9, 4'); setInputError(null) } },
+          { label: 'Skewed: right-skewed', onClick: () => { setDraftInput('1, null, 2, null, null, null, 3'); setInputError(null) } },
+        ]}
+      >
         {isBST && order === 'inorder' && (
           <p className="text-[11px] text-emerald-500/80">Inorder on a BST gives sorted output — try it!</p>
         )}
-        <div className="flex gap-2 items-start">
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <label className="text-[11px] text-slate-500">
-              Level-order values (comma-separated, use <span className="font-mono">null</span> for missing nodes)
-            </label>
-            <input value={draftInput} onChange={(e) => setDraftInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleApply()}
-              placeholder="e.g. 4, 2, 6, 1, 3, 5, 7"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full" />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Apply</label>
-            <div className="flex gap-1.5">
-              <button onClick={handleApply}
-                className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors">
-                Apply
-              </button>
-              <button onClick={handleReset}
-                className="rounded-md bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>
-        {inputError && <p className="text-[11px] text-red-400">{inputError}</p>}
-        <p className="text-[11px] text-slate-600">
-          Example trees — BST:{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftInput('4, 2, 6, 1, 3, 5, 7'); setInputError(null) }}>4,2,6,1,3,5,7</button>
-          {' · '}Non-BST:{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftInput('1, 5, 2, 7, 3, 9, 4'); setInputError(null) }}>1,5,2,7,3,9,4</button>
-          {' · '}Skewed:{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftInput('1, null, 2, null, null, null, 3'); setInputError(null) }}>right-skewed</button>
-        </p>
-      </div>
+      </InputPanel>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
         <svg viewBox={`0 0 600 ${svgH}`} className="w-full" style={{ maxHeight: 420 }}>
@@ -261,13 +241,7 @@ export default function TreeTraversalVisualizer({ onStepChange, onOrderChange })
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={step.message}
-          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-          className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-slate-300">
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>

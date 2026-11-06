@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { buildMergeSortedListsSteps } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 const DEFAULT_L1 = [1, 2, 4]
 const DEFAULT_L2 = [1, 3, 4]
@@ -199,18 +200,6 @@ function parseList(str) {
   }
   return parsed
 }
-
-function ExBtn({ label, onClick }) {
-  return (
-    <button
-      className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  )
-}
-
 // ── Merged row ────────────────────────────────────────────────────────────────
 
 function MergedRow({ merged, step }) {
@@ -292,61 +281,26 @@ export default function MergeSortedListsVisualizer({ onStepChange }) {
   return (
     <div className="space-y-4">
 
-      {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-white">Merge Two Sorted Lists</h2>
-        <p className="text-sm text-slate-400">
-          Two pointers walk the sorted lists — always pick the smaller front node and advance that pointer.
-        </p>
-      </div>
+      <VizHeader
+        title="Merge Two Sorted Lists"
+        subtitle="Two pointers walk the sorted lists — always pick the smaller front node and advance that pointer."
+      />
 
       {/* Input */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Try your own lists
-        </p>
-        <div className="flex gap-2 items-start flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-[11px] text-slate-500">list1 (sorted, max 8)</label>
-            <input
-              value={draftL1}
-              onChange={(e) => setDraftL1(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 1, 2, 4"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono
-                text-slate-100 outline-none focus:border-sky-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-[11px] text-slate-500">list2 (sorted, max 8)</label>
-            <input
-              value={draftL2}
-              onChange={(e) => setDraftL2(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 1, 3, 4"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono
-                text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Run</label>
-            <button
-              onClick={handleRun}
-              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700
-                px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-            >
-              Run
-            </button>
-          </div>
-        </div>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-        <p className="text-[11px] text-slate-600">
-          Examples —{' '}
-          <ExBtn label="[1,2,4] + [1,3,4]" onClick={() => { setDraftL1('1, 2, 4'); setDraftL2('1, 3, 4'); setError(null) }} />{' · '}
-          <ExBtn label="[1,3,5] + [2,4,6]" onClick={() => { setDraftL1('1, 3, 5'); setDraftL2('2, 4, 6'); setError(null) }} />{' · '}
-          <ExBtn label="[] + [1]"           onClick={() => { setDraftL1('');        setDraftL2('1');       setError(null) }} />
-        </p>
-      </div>
+      <InputPanel
+        title="Try your own lists"
+        fields={[
+          { label: 'list1 (sorted, max 8)', value: draftL1, onChange: setDraftL1, placeholder: 'e.g. 1, 2, 4', width: 'flex-1 min-w-[140px]' },
+          { label: 'list2 (sorted, max 8)', value: draftL2, onChange: setDraftL2, placeholder: 'e.g. 1, 3, 4', width: 'flex-1 min-w-[140px]' },
+        ]}
+        onRun={handleRun}
+        error={error}
+        examples={[
+          { label: '[1,2,4] + [1,3,4]', onClick: () => { setDraftL1('1, 2, 4'); setDraftL2('1, 3, 4'); setError(null) } },
+          { label: '[1,3,5] + [2,4,6]', onClick: () => { setDraftL1('1, 3, 5'); setDraftL2('2, 4, 6'); setError(null) } },
+          { label: '[] + [1]', onClick: () => { setDraftL1('');        setDraftL2('1');       setError(null) } },
+        ]}
+      />
 
       {/* Main panel */}
       <div className="rounded-2xl border border-white/10 bg-[#070d1f] px-5 pt-5 pb-4 space-y-5">
@@ -434,17 +388,7 @@ export default function MergeSortedListsVisualizer({ onStepChange }) {
       </AnimatePresence>
 
       {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300"
-        >
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>

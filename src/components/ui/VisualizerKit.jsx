@@ -10,26 +10,46 @@ import SectionLabel from './SectionLabel'
  */
 
 // ─── Chrome ───────────────────────────────────────────────────────────────────
-export function VizHeader({ title, subtitle }) {
-  return (
+/** Title + subtitle; `aside` (e.g. a Legend) sits on the right and wraps below on narrow screens. */
+export function VizHeader({ title, subtitle, aside }) {
+  const heading = (
     <div>
       <h2 className="text-lg font-semibold text-white">{title}</h2>
-      <p className="text-sm text-slate-400">{subtitle}</p>
+      {subtitle && <p className="text-sm text-slate-400">{subtitle}</p>}
+    </div>
+  )
+  if (!aside) return heading
+  return (
+    <div className="flex items-center justify-between flex-wrap gap-2">
+      {heading}
+      {aside}
     </div>
   )
 }
 
 /**
- * fields: [{ label, value, onChange, placeholder, grow? }]
- * examples: [{ label, onClick }]
+ * fields:        [{ label, value, onChange, placeholder, grow?, width? }]
+ *                grow: false → narrow (w-24); width → a Tailwind width class, e.g. 'w-36'
+ * examples:      [{ label, onClick }]
+ * examplesLabel: word before the example links ('Examples', 'Presets', …)
+ * runLabel:      text on the primary button
+ * actions:       extra buttons after the primary one (e.g. <SecondaryButton>)
+ * aside:         content on the right of the title row (e.g. a status pill)
+ * children:      content between the title and the fields (e.g. a hint)
  */
-export function InputPanel({ title = 'Try your own input', fields, onRun, error, examples = [] }) {
+export function InputPanel({
+  title = 'Try your own input', fields, onRun, error, examples = [],
+  examplesLabel = 'Examples', runLabel = 'Run', actions, aside, children,
+}) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-      <SectionLabel>{title}</SectionLabel>
+      {aside
+        ? <div className="flex items-center justify-between gap-2"><SectionLabel>{title}</SectionLabel>{aside}</div>
+        : <SectionLabel>{title}</SectionLabel>}
+      {children}
       <div className="flex gap-2 items-start flex-wrap">
-        {fields.map((f) => (
-          <div key={f.label} className={`flex flex-col gap-1 ${f.grow === false ? 'w-24' : 'flex-1 min-w-[160px]'}`}>
+        {fields.map((f, i) => (
+          <div key={typeof f.label === 'string' ? f.label : i} className={`flex flex-col gap-1 ${f.width ?? (f.grow === false ? 'w-24' : 'flex-1 min-w-[160px]')}`}>
             <label className="text-[11px] text-slate-500">{f.label}</label>
             <input
               value={f.value}
@@ -41,19 +61,22 @@ export function InputPanel({ title = 'Try your own input', fields, onRun, error,
           </div>
         ))}
         <div className="flex flex-col gap-1 justify-end">
-          <label className="text-[11px] text-transparent select-none">Run</label>
-          <button
-            onClick={onRun}
-            className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-          >
-            Run
-          </button>
+          <label className="text-[11px] text-transparent select-none">{runLabel}</label>
+          <div className="flex gap-1.5">
+            <button
+              onClick={onRun}
+              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
+            >
+              {runLabel}
+            </button>
+            {actions}
+          </div>
         </div>
       </div>
       {error && <p className="text-[11px] text-red-400">{error}</p>}
       {examples.length > 0 && (
         <p className="text-[11px] text-slate-600">
-          Examples —{' '}
+          {examplesLabel} —{' '}
           {examples.map((ex, i) => (
             <span key={ex.label}>
               {i > 0 && ' · '}
@@ -68,6 +91,18 @@ export function InputPanel({ title = 'Try your own input', fields, onRun, error,
         </p>
       )}
     </div>
+  )
+}
+
+/** Secondary button for InputPanel `actions`, e.g. Reset. */
+export function SecondaryButton({ onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-md bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+    >
+      {children}
+    </button>
   )
 }
 

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { buildRemoveElementSteps } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, Legend, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 const DEFAULT_NUMS = [3, 2, 2, 3]
 const DEFAULT_VAL  = 3
@@ -163,78 +164,36 @@ export default function RemoveElementVisualizer({ onStepChange }) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Remove Element</h2>
-          <p className="text-sm text-slate-400">
-            Reader <span className="text-amber-400 font-mono">i</span> sprints ahead —
-            leaps over <span className="text-rose-400">val</span> tiles, hands the rest
-            to writer <span className="text-blue-400 font-mono">k</span>.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-          <Legend color="#fca5a5" label={`val = ${step.val}`}  />
-          <Legend color="#3b82f6" label="Handing off"          />
-          <Legend color="#10b981" label="Placed (result)"      />
-          <Legend color="#475569" label="Consumed"             />
-        </div>
-      </div>
+      <VizHeader
+        title="Remove Element"
+        subtitle={<>
+          Reader <span className="text-amber-400 font-mono">i</span> sprints ahead —
+          leaps over <span className="text-rose-400">val</span> tiles, hands the rest
+          to writer <span className="text-blue-400 font-mono">k</span>.
+        </>}
+        aside={
+          <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+            <Legend items={[['#fca5a5', `val = ${step.val}`], ['#3b82f6', 'Handing off'], ['#10b981', 'Placed (result)'], ['#475569', 'Consumed']]} />
+          </div>
+        }
+      />
 
       {/* Input */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Try your own values{' '}
-          <span className="font-normal text-slate-600">(integers 0–9)</span>
-        </p>
-        <div className="flex gap-2 items-start flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-[11px] text-slate-500">Array (comma-separated)</label>
-            <input
-              value={draftNums}
-              onChange={(e) => setDraftNums(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 3, 2, 2, 3"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-16">
-            <label className="text-[11px] text-slate-500">val</label>
-            <input
-              value={draftVal}
-              onChange={(e) => setDraftVal(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="3"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Run</label>
-            <button
-              onClick={handleRun}
-              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-            >
-              Run
-            </button>
-          </div>
-        </div>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-        <p className="text-[11px] text-slate-600">
-          Examples —{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftNums('3, 2, 2, 3'); setDraftVal('3'); setError(null) }}>
-            [3,2,2,3] val=3
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftNums('0, 1, 2, 2, 3, 0, 4, 2'); setDraftVal('2'); setError(null) }}>
-            [0,1,2,2,3,0,4,2] val=2
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftNums('4, 5'); setDraftVal('4'); setError(null) }}>
-            [4,5] val=4
-          </button>
-        </p>
-      </div>
+      <InputPanel
+        title={<>Try your own values{' '}
+          <span className="font-normal text-slate-600">(integers 0–9)</span></>}
+        fields={[
+          { label: 'Array (comma-separated)', value: draftNums, onChange: setDraftNums, placeholder: 'e.g. 3, 2, 2, 3' },
+          { label: 'val', value: draftVal, onChange: setDraftVal, placeholder: '3', width: 'w-16' },
+        ]}
+        onRun={handleRun}
+        error={error}
+        examples={[
+          { label: '[3,2,2,3] val=3', onClick: () => { setDraftNums('3, 2, 2, 3'); setDraftVal('3'); setError(null) } },
+          { label: '[0,1,2,2,3,0,4,2] val=2', onClick: () => { setDraftNums('0, 1, 2, 2, 3, 0, 4, 2'); setDraftVal('2'); setError(null) } },
+          { label: '[4,5] val=4', onClick: () => { setDraftNums('4, 5'); setDraftVal('4'); setError(null) } },
+        ]}
+      />
 
       {/* Track */}
       <div className="rounded-2xl border border-white/10 bg-[#070d1f] px-5 pt-5 pb-4">
@@ -339,28 +298,9 @@ export default function RemoveElementVisualizer({ onStepChange }) {
       </AnimatePresence>
 
       {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300"
-        >
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>
-  )
-}
-
-function Legend({ color, label }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
   )
 }

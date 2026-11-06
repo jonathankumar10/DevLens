@@ -1,8 +1,9 @@
 import { useMemo, useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { buildBFSSteps, DEFAULT_CITY } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, Legend, SecondaryButton, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 function parseEdgeList(input) {
   const parts = input.split(',').map((s) => s.trim()).filter(Boolean)
@@ -256,61 +257,30 @@ export default function BFSVisualizer({ onStepChange }) {
     setTimeout(() => reset(), 0)
   }
 
-  function handleKeyDown(e) { if (e.key === 'Enter') handleApply() }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-white">Breadth-First Search</h2>
-        <p className="text-sm text-slate-400">A car explores the city district by district.</p>
-      </div>
+      <VizHeader
+        title="Breadth-First Search"
+        subtitle="A car explores the city district by district."
+      />
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Build your own graph</p>
-        <div className="flex flex-wrap gap-2 items-start">
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <label className="text-[11px] text-slate-500">Edges (comma-separated, use A-B format)</label>
-            <input value={draftEdges} onChange={(e) => setDraftEdges(e.target.value)} onKeyDown={handleKeyDown}
-              placeholder="A-B, A-C, B-D, ..."
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full" />
-          </div>
-          <div className="flex flex-col gap-1 w-24">
-            <label className="text-[11px] text-slate-500">Start node</label>
-            <input value={draftStart} onChange={(e) => setDraftStart(e.target.value)} onKeyDown={handleKeyDown}
-              placeholder="A"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full" />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Go</label>
-            <div className="flex gap-1.5">
-              <button onClick={handleApply}
-                className="rounded-md bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-semibold text-white transition-colors">
-                Apply
-              </button>
-              <button onClick={handleReset}
-                className="rounded-md bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>
-        {inputError && <p className="text-[11px] text-red-400">{inputError}</p>}
-        <p className="text-[11px] text-slate-600">
-          Examples —{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftEdges('A-B, A-C, B-D, B-E, C-F, C-G, E-H, F-H'); setDraftStart('A'); setInputError(null) }}>
-            City map
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftEdges('1-2, 1-3, 2-4, 2-5, 3-6, 4-7'); setDraftStart('1'); setInputError(null) }}>
-            Binary tree
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftEdges('A-B, B-C, C-D, D-E, A-C, B-D'); setDraftStart('A'); setInputError(null) }}>
-            Cycle graph
-          </button>
-        </p>
-      </div>
+      <InputPanel
+        title="Build your own graph"
+        fields={[
+          { label: 'Edges (comma-separated, use A-B format)', value: draftEdges, onChange: setDraftEdges, placeholder: 'A-B, A-C, B-D, ...', width: 'flex-1 min-w-0' },
+          { label: 'Start node', value: draftStart, onChange: setDraftStart, placeholder: 'A', grow: false },
+        ]}
+        onRun={handleApply}
+        runLabel="Apply"
+        actions={<SecondaryButton onClick={handleReset}>Reset</SecondaryButton>}
+        error={inputError}
+        examples={[
+          { label: 'City map', onClick: () => { setDraftEdges('A-B, A-C, B-D, B-E, C-F, C-G, E-H, F-H'); setDraftStart('A'); setInputError(null) } },
+          { label: 'Binary tree', onClick: () => { setDraftEdges('1-2, 1-3, 2-4, 2-5, 3-6, 4-7'); setDraftStart('1'); setInputError(null) } },
+          { label: 'Cycle graph', onClick: () => { setDraftEdges('A-B, B-C, C-D, D-E, A-C, B-D'); setDraftStart('A'); setInputError(null) } },
+        ]}
+      />
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#06090f]">
         <svg viewBox="0 0 600 500" className="w-full" style={{ maxHeight: 400 }}>
@@ -365,30 +335,12 @@ export default function BFSVisualizer({ onStepChange }) {
       </div>
 
       <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-        <Legend color="#f59e0b" label="Current"     />
-        <Legend color="#93c5fd" label="Discovering" />
-        <Legend color="#10b981" label="Visited"     />
-        <Legend color="#2563eb" label="In queue"    />
+        <Legend items={[['#f59e0b', 'Current'], ['#93c5fd', 'Discovering'], ['#10b981', 'Visited'], ['#2563eb', 'In queue']]} />
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={step.message}
-          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-          className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-slate-300">
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>
-  )
-}
-
-function Legend({ color, label }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
   )
 }

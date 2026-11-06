@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { buildTwoSumSteps } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { VizHeader, InputPanel, Legend, StepMessage } from '../../../components/ui/VisualizerKit'
+import { parseIntList } from '../../../lib/vizHelpers'
 
 const DEFAULT_NUMS   = [2, 7, 11, 15, 3, 6]
 const DEFAULT_TARGET = 9
@@ -249,17 +251,20 @@ export default function TwoSumVisualizer({ onStepChange }) {
   useEffect(() => { onStepChange?.(step) }, [step, onStepChange])
 
   function handleRun() {
-    const parsed = draftNums
-      .split(',').map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n) && Number.isInteger(n))
+    const parsed = parseIntList(draftNums, { min: 2, max: 10 })
+    if (parsed.error) { setError(parsed.error); return }
     const t = Number(draftTarget.trim())
-    if (parsed.length < 2 || parsed.length > 10) { setError('Enter 2–10 integers, comma-separated.'); return }
-    if (!Number.isFinite(t) || !Number.isInteger(t)) { setError('Target must be an integer.'); return }
+    if (draftTarget.trim() === '' || !Number.isInteger(t)) { setError('Target must be an integer.'); return }
     setError(null)
-    setNums(parsed)
+    setNums(parsed.value)
     setTarget(t)
     setTimeout(() => reset(), 0)
   }
+
+  const example = (numsText, targetText) => ({
+    label: `${numsText.replaceAll(' ', '')} → ${targetText}`,
+    onClick: () => { setDraftNums(numsText); setDraftTarget(targetText); setError(null) },
+  })
 
   function getStatus(i) {
     if (step.foundPair?.includes(i)) return 'found'
@@ -281,64 +286,25 @@ export default function TwoSumVisualizer({ onStepChange }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Two Sum</h2>
-          <p className="text-sm text-slate-400">
-            Target: <span className="font-mono text-blue-400 font-bold">{target}</span>
-            <span className="text-slate-600 ml-2 text-xs">— hover a bottle to see what it needs</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-          <Legend color="#3b82f6" label="Checking"   />
-          <Legend color="#f97316" label="Complement" />
-          <Legend color="#3b82f6" label="In table"   />
-          <Legend color="#22c55e" label="Found!"     />
-        </div>
-      </div>
+      <VizHeader
+        title="Two Sum"
+        subtitle={<>
+          Target: <span className="font-mono text-blue-400 font-bold">{target}</span>
+          <span className="text-slate-600 ml-2 text-xs">— hover a bottle to see what it needs</span>
+        </>}
+        aside={<Legend items={[['#3b82f6', 'Checking'], ['#f97316', 'Complement'], ['#3b82f6', 'In table'], ['#22c55e', 'Found!']]} />}
+      />
 
-      {/* Input */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Try your own values</p>
-        <div className="flex flex-wrap gap-2 items-start">
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <label className="text-[11px] text-slate-500">Array (comma-separated)</label>
-            <input
-              value={draftNums}
-              onChange={(e) => setDraftNums(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 2, 7, 11, 15"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-24">
-            <label className="text-[11px] text-slate-500">Target</label>
-            <input
-              value={draftTarget}
-              onChange={(e) => setDraftTarget(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 9"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Run</label>
-            <button
-              onClick={handleRun}
-              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-            >
-              Run
-            </button>
-          </div>
-        </div>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-        <p className="text-[11px] text-slate-600">
-          Examples —{' '}
-          <ExBtn label="2,7,11,15 → 9"  onClick={() => { setDraftNums('2, 7, 11, 15'); setDraftTarget('9');  setError(null) }} />{' · '}
-          <ExBtn label="3,2,4 → 6"       onClick={() => { setDraftNums('3, 2, 4');      setDraftTarget('6');  setError(null) }} />{' · '}
-          <ExBtn label="5,1,9,2,7 → 11"  onClick={() => { setDraftNums('5, 1, 9, 2, 7'); setDraftTarget('11'); setError(null) }} />
-        </p>
-      </div>
+      <InputPanel
+        title="Try your own values"
+        fields={[
+          { label: 'Array (comma-separated)', value: draftNums, onChange: setDraftNums, placeholder: 'e.g. 2, 7, 11, 15' },
+          { label: 'Target', value: draftTarget, onChange: setDraftTarget, placeholder: 'e.g. 9', grow: false },
+        ]}
+        onRun={handleRun}
+        error={error}
+        examples={[example('2, 7, 11, 15', '9'), example('3, 2, 4', '6'), example('5, 1, 9, 2, 7', '11')]}
+      />
 
       {/* Bottles */}
       <div className="rounded-2xl border border-white/10 bg-[#070d1f] px-4 pt-6 pb-3">
@@ -435,37 +401,9 @@ export default function TwoSumVisualizer({ onStepChange }) {
         )}
       </AnimatePresence>
 
-      {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300"
-        >
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>
-  )
-}
-
-function Legend({ color, label }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  )
-}
-
-function ExBtn({ label, onClick }) {
-  return (
-    <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors" onClick={onClick}>
-      {label}
-    </button>
   )
 }

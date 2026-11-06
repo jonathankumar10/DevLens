@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { buildBaseballGameSteps } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 const DEFAULT_OPS = ['5', '2', 'C', 'D', '+']
 
@@ -274,49 +275,25 @@ export default function BaseballGameVisualizer({ onStepChange }) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-white">Baseball Game</h2>
-        <p className="text-sm text-slate-400">
-          Scorecards on a table — drop a card, double it, sum the top two, or crumple the top.
-        </p>
-      </div>
+      <VizHeader
+        title="Baseball Game"
+        subtitle="Scorecards on a table — drop a card, double it, sum the top two, or crumple the top."
+      />
 
       {/* Input */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Try your own operations
-        </p>
-        <div className="flex gap-2 items-start flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
-            <label className="text-[11px] text-slate-500">Comma-separated (integers, +, C, D)</label>
-            <input
-              value={draftOps}
-              onChange={(e) => setDraftOps(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 5, 2, C, D, +"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono
-                text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Run</label>
-            <button
-              onClick={handleRun}
-              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-            >
-              Run
-            </button>
-          </div>
-        </div>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-        <p className="text-[11px] text-slate-600">
-          Examples —{' '}
-          <ExBtn label="5,2,C,D,+"        onClick={() => { setDraftOps('5, 2, C, D, +');          setError(null) }} />{' · '}
-          <ExBtn label="5,-2,4,C,D,9,+,+" onClick={() => { setDraftOps('5, -2, 4, C, D, 9, +, +'); setError(null) }} />{' · '}
-          <ExBtn label="1,C"              onClick={() => { setDraftOps('1, C');                    setError(null) }} />
-        </p>
-      </div>
+      <InputPanel
+        title="Try your own operations"
+        fields={[
+          { label: 'Comma-separated (integers, +, C, D)', value: draftOps, onChange: setDraftOps, placeholder: 'e.g. 5, 2, C, D, +' },
+        ]}
+        onRun={handleRun}
+        error={error}
+        examples={[
+          { label: '5,2,C,D,+', onClick: () => { setDraftOps('5, 2, C, D, +');          setError(null) } },
+          { label: '5,-2,4,C,D,9,+,+', onClick: () => { setDraftOps('5, -2, 4, C, D, 9, +, +'); setError(null) } },
+          { label: '1,C', onClick: () => { setDraftOps('1, C');                    setError(null) } },
+        ]}
+      />
 
       {/* Main panel */}
       <div className="rounded-2xl border border-white/10 bg-[#070d1f] px-5 pt-5 pb-4 space-y-5">
@@ -407,27 +384,9 @@ export default function BaseballGameVisualizer({ onStepChange }) {
       </AnimatePresence>
 
       {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300"
-        >
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>
-  )
-}
-
-function ExBtn({ label, onClick }) {
-  return (
-    <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors" onClick={onClick}>
-      {label}
-    </button>
   )
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { buildBinarySearchSteps } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, Legend, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 const DEFAULT_NUMS   = [-1, 0, 3, 5, 9, 12]
@@ -304,80 +305,37 @@ export default function BinarySearchVisualizer({ onStepChange }) {
   return (
     <div className="space-y-4">
 
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Binary Search</h2>
-          <p className="text-sm text-slate-400">
-            A row of lockers, sorted. Two walls squeeze inward — crack open the{' '}
-            <span className="text-blue-400 font-mono">mid</span> locker each round.
-            Wrong half? That wall jumps past it and the lockers go dark.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 text-[11px] text-slate-400">
-          <Legend color="#3b82f6" label="Opened (mid)" />
-          <Legend color="#475569" label="Active" />
-          <Legend color="#1e293b" label="Eliminated" />
-          <Legend color="#10b981" label="Found!" />
-        </div>
-      </div>
+      <VizHeader
+        title="Binary Search"
+        subtitle={<>
+          A row of lockers, sorted. Two walls squeeze inward — crack open the{' '}
+          <span className="text-blue-400 font-mono">mid</span> locker each round.
+          Wrong half? That wall jumps past it and the lockers go dark.
+        </>}
+        aside={
+          <div className="flex flex-wrap gap-3 text-[11px] text-slate-400">
+            <Legend items={[['#3b82f6', 'Opened (mid)'], ['#475569', 'Active'], ['#1e293b', 'Eliminated'], ['#10b981', 'Found!']]} />
+          </div>
+        }
+      />
 
       {/* Input */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Try your own values
-        </p>
-        <div className="flex gap-2 items-start flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
-            <label className="text-[11px] text-slate-500">Sorted array (comma-separated)</label>
-            <input
-              value={draftNums}
-              onChange={(e) => setDraftNums(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="-1, 0, 3, 5, 9, 12"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-20">
-            <label className="text-[11px] text-slate-500">Target</label>
-            <input
-              value={draftTgt}
-              onChange={(e) => setDraftTgt(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Run</label>
-            <button
-              onClick={handleRun}
-              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-            >
-              Run
-            </button>
-          </div>
-        </div>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-        <p className="text-[11px] text-slate-600">
-          Presets —{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => applyPreset([-1, 0, 3, 5, 9, 12], 9)}>
-            target found (9)
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => applyPreset([-1, 0, 3, 5, 9, 12], 2)}>
-            target missing (2)
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => applyPreset([1, 3, 5, 7, 9, 11, 13, 15, 17, 19], 1)}>
-            leftmost (1)
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => applyPreset([1, 3, 5, 7, 9, 11, 13, 15, 17, 19], 19)}>
-            rightmost (19)
-          </button>
-        </p>
-      </div>
+      <InputPanel
+        title="Try your own values"
+        fields={[
+          { label: 'Sorted array (comma-separated)', value: draftNums, onChange: setDraftNums, placeholder: '-1, 0, 3, 5, 9, 12', width: 'flex-1 min-w-[200px]' },
+          { label: 'Target', value: draftTgt, onChange: setDraftTgt, width: 'w-20' },
+        ]}
+        onRun={handleRun}
+        error={error}
+        examplesLabel="Presets"
+        examples={[
+          { label: 'target found (9)', onClick: () => applyPreset([-1, 0, 3, 5, 9, 12], 9) },
+          { label: 'target missing (2)', onClick: () => applyPreset([-1, 0, 3, 5, 9, 12], 2) },
+          { label: 'leftmost (1)', onClick: () => applyPreset([1, 3, 5, 7, 9, 11, 13, 15, 17, 19], 1) },
+          { label: 'rightmost (19)', onClick: () => applyPreset([1, 3, 5, 7, 9, 11, 13, 15, 17, 19], 19) },
+        ]}
+      />
 
       {/* Locker hall */}
       <div className="rounded-2xl border border-white/10 bg-[#070d1f] px-5 pt-6 pb-5 space-y-5">
@@ -532,28 +490,9 @@ export default function BinarySearchVisualizer({ onStepChange }) {
       </AnimatePresence>
 
       {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300 font-mono"
-        >
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>
-  )
-}
-
-function Legend({ color, label }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
   )
 }

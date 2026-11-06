@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { buildConcatenationSteps } from './steps'
 import { useStepRunner } from '../../../hooks/useStepRunner'
 import StepControls from '../../../components/ui/StepControls'
+import { InputPanel, Legend, StepMessage, VizHeader } from '../../../components/ui/VisualizerKit'
 
 const DEFAULT_NUMS = [1, 2, 1]
 
@@ -199,66 +200,30 @@ export default function ConcatenationVisualizer({ onStepChange }) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Concatenation of Array</h2>
-          <p className="text-sm text-slate-400">
-            The stamp presses each value into{' '}
-            <span className="text-blue-400">both halves</span> at once.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-          <Legend color="#f59e0b" label="Current" />
-          <Legend color="#3b82f6" label="Just stamped" />
-          <Legend color="#5b21b6" label="Filled" />
-        </div>
-      </div>
+      <VizHeader
+        title="Concatenation of Array"
+        subtitle={<>
+          The stamp presses each value into{' '}
+          <span className="text-blue-400">both halves</span> at once.
+        </>}
+        aside={<Legend items={[['#f59e0b', 'Current'], ['#3b82f6', 'Just stamped'], ['#5b21b6', 'Filled']]} />}
+      />
 
       {/* Input */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Try your own values{' '}
-          <span className="font-normal text-slate-600">(integers 0–99, up to 6)</span>
-        </p>
-        <div className="flex gap-2 items-start flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-[11px] text-slate-500">Array (comma-separated)</label>
-            <input
-              value={draftArr}
-              onChange={(e) => setDraftArr(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-              placeholder="e.g. 1, 2, 1"
-              className="rounded-md bg-slate-800 border border-white/10 px-3 py-1.5 text-xs font-mono text-slate-100 outline-none focus:border-blue-500 transition-colors w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1 justify-end">
-            <label className="text-[11px] text-transparent select-none">Run</label>
-            <button
-              onClick={handleRun}
-              className="rounded-md bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white transition-colors"
-            >
-              Run
-            </button>
-          </div>
-        </div>
-        {error && <p className="text-[11px] text-red-400">{error}</p>}
-        <p className="text-[11px] text-slate-600">
-          Examples —{' '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftArr('1, 2, 1'); setError(null) }}>
-            [1,2,1]
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftArr('1, 3, 2, 1'); setError(null) }}>
-            [1,3,2,1]
-          </button>{' · '}
-          <button className="text-slate-400 hover:text-white underline underline-offset-2 transition-colors"
-            onClick={() => { setDraftArr('5, 5, 5'); setError(null) }}>
-            [5,5,5]
-          </button>
-        </p>
-      </div>
+      <InputPanel
+        title={<>Try your own values{' '}
+          <span className="font-normal text-slate-600">(integers 0–99, up to 6)</span></>}
+        fields={[
+          { label: 'Array (comma-separated)', value: draftArr, onChange: setDraftArr, placeholder: 'e.g. 1, 2, 1' },
+        ]}
+        onRun={handleRun}
+        error={error}
+        examples={[
+          { label: '[1,2,1]', onClick: () => { setDraftArr('1, 2, 1'); setError(null) } },
+          { label: '[1,3,2,1]', onClick: () => { setDraftArr('1, 3, 2, 1'); setError(null) } },
+          { label: '[5,5,5]', onClick: () => { setDraftArr('5, 5, 5'); setError(null) } },
+        ]}
+      />
 
       {/* Track */}
       <div className="rounded-2xl border border-white/10 bg-[#070d1f] px-5 pt-5 pb-4 space-y-5">
@@ -412,28 +377,9 @@ export default function ConcatenationVisualizer({ onStepChange }) {
       </AnimatePresence>
 
       {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300"
-        >
-          {step.message}
-        </motion.div>
-      </AnimatePresence>
+      <StepMessage message={step.message} />
 
       <StepControls runner={runner} />
     </div>
-  )
-}
-
-function Legend({ color, label }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
   )
 }
