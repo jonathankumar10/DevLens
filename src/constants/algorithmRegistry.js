@@ -35,6 +35,7 @@ import invertTree            from '../content/algorithms/invert-tree/index.js'
 import cloneGraph            from '../content/algorithms/clone-graph/index.js'
 import climbingStairs        from '../content/algorithms/climbing-stairs/index.js'
 import houseRobber           from '../content/algorithms/house-robber/index.js'
+import bestTimeStock         from '../content/algorithms/best-time-to-buy-sell-stock/index.js'
 
 // Ordered list — add new algorithms here, one import + one array entry.
 export const ALGORITHMS = [
@@ -75,6 +76,7 @@ export const ALGORITHMS = [
   cloneGraph,
   climbingStairs,
   houseRobber,
+  bestTimeStock,
 ].map((algo) => ({ ...algo, path: `/algorithms/${algo.id}` }))
 
 export { DIFFICULTY_COLOR } from './palette'

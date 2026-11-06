@@ -25,7 +25,7 @@ const PATTERN_DATA = [
       { op: 'Insert / Delete (middle)', time: 'O(n)' },
       { op: 'Insert / Delete (end)', time: 'O(1) amortized' },
     ],
-    algorithmIds: ['contains-duplicate', 'max-consecutive-ones', 'remove-element', 'replace-elements', 'concatenation-of-array', 'maximum-subarray'],
+    algorithmIds: ['contains-duplicate', 'max-consecutive-ones', 'remove-element', 'replace-elements', 'concatenation-of-array', 'maximum-subarray', 'best-time-to-buy-sell-stock'],
   },
   {
     id: 'hash-map',

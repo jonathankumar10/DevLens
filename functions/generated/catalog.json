@@ -186,6 +186,11 @@
         "title": "House Robber",
         "path": "/algorithms/house-robber",
         "meta": "Medium · 1-D DP"
+      },
+      {
+        "title": "Best Time to Buy and Sell Stock",
+        "path": "/algorithms/best-time-to-buy-sell-stock",
+        "meta": "Easy · Sliding Window"
       }
     ]
   },
