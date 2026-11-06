@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo } from 'react'
 import { buildMicroservicesSteps } from './steps'
 import { useTtsRunner } from '../../../../hooks/useTtsRunner'
 import StepControls from '../../../../components/ui/StepControls'
+import DiagramNode from '../../../../components/system-design/diagram/DiagramNode'
+import { DiagramEdges } from '../../../../components/system-design/diagram/DiagramEdge'
+import { FLOW } from '../../../../components/system-design/diagram/colors'
+import { useDiagramNodes } from '../../../../components/system-design/diagram/useDiagramNodes'
+import { DiagramCanvas, DiagramHeader, StepNarration } from '../../../../components/system-design/diagram/DiagramParts'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 // Three columns:
@@ -91,185 +95,34 @@ const NODES = [
 
 // Edge endpoints are exact boundary points of their source/target nodes
 const EDGES = {
-  'client-gateway':    { x1: 115, y1: 200, x2: 145, y2: 200, axis: 'h' },
-  'gateway-users':     { x1: 205, y1: 160, x2: 320, y2: 75,  axis: 'd' },
-  'gateway-orders':    { x1: 265, y1: 200, x2: 320, y2: 200, axis: 'h' },
-  'gateway-inventory': { x1: 205, y1: 240, x2: 320, y2: 325, axis: 'd' },
-  'orders-payments':   { x1: 440, y1: 180, x2: 495, y2: 130, axis: 'd' },
-  'orders-queue':      { x1: 440, y1: 215, x2: 490, y2: 240, axis: 'd' },
-  'queue-notifs':      { x1: 555, y1: 274, x2: 555, y2: 321, axis: 'v' },
+  'client-gateway':    { x1: 115, y1: 200, x2: 145, y2: 200 },
+  'gateway-users':     { x1: 205, y1: 160, x2: 320, y2: 75 },
+  'gateway-orders':    { x1: 265, y1: 200, x2: 320, y2: 200 },
+  'gateway-inventory': { x1: 205, y1: 240, x2: 320, y2: 325 },
+  'orders-payments':   { x1: 440, y1: 180, x2: 495, y2: 130 },
+  'orders-queue':      { x1: 440, y1: 215, x2: 490, y2: 240 },
+  'queue-notifs':      { x1: 555, y1: 274, x2: 555, y2: 321 },
 }
 
 const ASYNC_EDGES = new Set(['orders-queue', 'queue-notifs'])
 
-const C = {
-  sync:  { hex: '#3b82f6', glow: 'rgba(59,130,246,0.85)' },
-  resp:  { hex: '#10b981', glow: 'rgba(16,185,129,0.85)' },
-  async: { hex: '#f59e0b', glow: 'rgba(245,158,11,0.85)' },
+// Sync calls are blue, responses come back green, async events are amber.
+const DIR_MAP = {
+  request:  { fwd: FLOW.blue },
+  response: { bwd: FLOW.emerald, line: FLOW.blue },
+  both:     { fwd: FLOW.blue, bwd: FLOW.emerald },
 }
+const ASYNC_DIR_MAP = {
+  request:  { fwd: FLOW.amber },
+  response: { bwd: FLOW.emerald, line: FLOW.amber },
+  both:     { fwd: FLOW.amber, bwd: FLOW.emerald },
+}
+const edgeProps = (edgeId, direction) =>
+  ASYNC_EDGES.has(edgeId) && direction ? { flow: ASYNC_DIR_MAP[direction] } : null
 
 // ── Edge (SVG line + animated particles) ─────────────────────────────────────
 
-function EdgeConnection({ edgeId, connections, stepKey }) {
-  const edge      = EDGES[edgeId]
-  const direction = connections[edgeId]
-  const isActive  = !!direction
-  const isAsync   = ASYNC_EDGES.has(edgeId)
-  const fwd = isActive && (direction === 'request' || direction === 'both')
-  const bwd = isActive && (direction === 'response' || direction === 'both')
-
-  const { x1, y1, x2, y2, axis } = edge
-  const lineColor = isActive ? (isAsync ? C.async.hex : C.sync.hex) : '#182030'
-
-  const fwdAnim = axis === 'v' ? { cx: x1, cy: [y1, y2] }
-                : axis === 'h' ? { cx: [x1, x2], cy: y1 }
-                : { cx: [x1, x2], cy: [y1, y2] }
-
-  const bwdAnim = axis === 'v' ? { cx: x2, cy: [y2, y1] }
-                : axis === 'h' ? { cx: [x2, x1], cy: y2 }
-                : { cx: [x2, x1], cy: [y2, y1] }
-
-  const fwdColor = isAsync ? C.async : C.sync
-
-  return (
-    <g>
-      <line
-        x1={x1} y1={y1} x2={x2} y2={y2}
-        stroke={lineColor}
-        strokeWidth={isActive ? 2 : 1}
-        strokeDasharray={isActive ? 'none' : '5 4'}
-        style={{
-          filter: isActive ? `drop-shadow(0 0 5px ${isAsync ? C.async.glow : C.sync.glow})` : 'none',
-          transition: 'all 0.3s',
-        }}
-      />
-
-      {fwd && [0, 1, 2].map((p) => (
-        <motion.circle
-          key={`${stepKey}-${edgeId}-f${p}`}
-          r={3.5} fill={fwdColor.hex}
-          style={{ filter: `drop-shadow(0 0 5px ${fwdColor.glow})` }}
-          animate={fwdAnim}
-          transition={{ duration: 0.5, delay: p * 0.16, ease: 'linear', repeat: Infinity, repeatDelay: 0.1 }}
-        />
-      ))}
-
-      {bwd && [0, 1, 2].map((p) => (
-        <motion.circle
-          key={`${stepKey}-${edgeId}-b${p}`}
-          r={3.5} fill={C.resp.hex}
-          style={{ filter: `drop-shadow(0 0 5px ${C.resp.glow})` }}
-          animate={bwdAnim}
-          transition={{ duration: 0.5, delay: p * 0.16, ease: 'linear', repeat: Infinity, repeatDelay: 0.1 }}
-        />
-      ))}
-    </g>
-  )
-}
-
 // ── Node block ────────────────────────────────────────────────────────────────
-
-function NodeBlock({ node, isActive, wasVisited, isExpanded, onClick, popKey }) {
-  const { cx, cy, w, h } = node
-  return (
-    <div className="absolute" style={{ left: cx - w / 2, top: cy - h / 2, width: w, height: h }}>
-      <motion.button
-        onClick={onClick}
-        className="relative w-full h-full rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center gap-0.5 px-1 cursor-pointer focus:outline-none"
-        animate={{
-          borderColor:     isActive ? node.color : wasVisited ? `${node.color}38` : 'rgba(255,255,255,0.08)',
-          backgroundColor: isActive ? `${node.color}16` : wasVisited ? `${node.color}07` : 'rgba(10,18,36,1)',
-          boxShadow:       isActive ? `0 0 32px -5px ${node.glow}` : 'none',
-        }}
-        transition={{ duration: 0.28 }}
-      >
-        {/* Top accent strip */}
-        <motion.div
-          className={`absolute top-0 left-0 right-0 h-0.5 ${node.strip}`}
-          animate={{ opacity: isActive ? 1 : wasVisited ? 0.35 : 0.12 }}
-        />
-
-        {/* Ripple burst on activation */}
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={`${popKey ?? 'i'}-${node.id}-${i}`}
-            className="absolute inset-0 rounded-xl border-2 pointer-events-none"
-            style={{ borderColor: node.color }}
-            initial={{ scale: 1, opacity: popKey != null ? 0.65 : 0 }}
-            animate={{ scale: 2.0 + i * 0.35, opacity: 0 }}
-            transition={{ duration: 0.7, delay: i * 0.12, ease: 'easeOut' }}
-          />
-        ))}
-
-        {/* Icon */}
-        <motion.span
-          key={`ic-${popKey ?? 0}`}
-          animate={popKey != null ? { scale: [1, 1.4, 0.88, 1.06, 1] } : { scale: 1 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-          className="text-xl leading-none select-none"
-        >
-          {node.icon}
-        </motion.span>
-
-        {/* Label */}
-        <motion.p
-          animate={{ color: isActive ? node.lc : wasVisited ? '#94a3b8' : '#475569' }}
-          className="text-[10px] font-bold text-center leading-tight"
-        >
-          {node.label}
-        </motion.p>
-
-        {/* Sub-labels */}
-        <motion.p
-          animate={{ color: isActive ? node.color : '#1f2937' }}
-          className="text-[9px] font-mono"
-        >
-          {node.sub1}
-        </motion.p>
-        <p className="text-[8px] text-slate-700">{node.sub2}</p>
-
-        {/* DB badge — shows which services own their own data store */}
-        {node.hasDb && (
-          <motion.div
-            animate={{ opacity: isActive ? 1 : wasVisited ? 0.5 : 0.2 }}
-            className="absolute bottom-1 right-1.5 rounded px-1 py-px text-[7px] font-bold border leading-none"
-            style={{
-              color:           node.color,
-              borderColor:     node.color + '40',
-              backgroundColor: node.color + '15',
-            }}
-          >
-            DB
-          </motion.div>
-        )}
-      </motion.button>
-
-      {/* Info panel — opens inward toward diagram centre */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-            className="absolute z-30 w-52 rounded-xl border bg-slate-900/96 backdrop-blur shadow-2xl p-3 space-y-1.5"
-            style={{
-              borderColor: `${node.color}40`,
-              ...(node.dir === 'top'    ? { top: '105%',    left: '50%', transform: 'translateX(-50%)' } : {}),
-              ...(node.dir === 'right'  ? { left: '105%',   top: '50%',  transform: 'translateY(-50%)' } : {}),
-              ...(node.dir === 'bottom' ? { bottom: '105%', left: '50%', transform: 'translateX(-50%)' } : {}),
-              ...(node.dir === 'left'   ? { right: '105%',  top: '50%',  transform: 'translateY(-50%)' } : {}),
-            }}
-          >
-            <p className="text-[11px] font-bold" style={{ color: node.lc }}>{node.label}</p>
-            <p className="text-[10px] text-slate-400 leading-relaxed">{node.desc}</p>
-            <p className="text-[10px] italic" style={{ color: node.color }}>{node.note}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -278,102 +131,53 @@ export default function MicroservicesDiagram() {
   const runner = useTtsRunner(steps, (step) => `${step.message}. ${step.detail}`)
   const { step, index } = runner
 
-  const [expandedNode, setExpandedNode] = useState(null)
-
-  const visitedNodes = useMemo(() => {
-    const s = new Set()
-    for (let i = 0; i <= index; i++) steps[i].activeNodes.forEach((id) => s.add(id))
-    return s
-  }, [steps, index])
+  const { nodeState } = useDiagramNodes(steps, index)
 
   return (
     <div className="space-y-4">
 
-      <div>
-        <h2 className="text-lg font-semibold text-white">Microservices Architecture</h2>
-        <p className="text-sm text-slate-400">
-          Step through how services decompose, communicate, and isolate data independently.
-        </p>
-      </div>
+      <DiagramHeader title="Microservices Architecture">
+        Step through how services decompose, communicate, and isolate data independently.
+      </DiagramHeader>
 
       {/* Diagram */}
-      <div
-        className="rounded-2xl border border-white/10 p-3 sm:p-5"
-        style={{
-          background:      '#060d1a',
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px)',
-          backgroundSize:  '22px 22px',
-        }}
-      >
-        <div className="overflow-x-auto pb-2">
-          <div style={{ minWidth: CW }}>
-
-            <div className="relative mx-auto" style={{ width: CW, height: CH }}>
-
-              {/* SVG overlay for edges and particles */}
-              <svg
-                className="absolute inset-0 pointer-events-none overflow-visible"
-                viewBox={`0 0 ${CW} ${CH}`}
-                width={CW} height={CH}
-              >
-                {Object.keys(EDGES).map((edgeId) => (
-                  <EdgeConnection
-                    key={edgeId}
-                    edgeId={edgeId}
-                    connections={step.connections}
-                    stepKey={index}
-                  />
-                ))}
-              </svg>
-
-              {/* Node blocks */}
-              {NODES.map((node) => (
-                <NodeBlock
-                  key={node.id}
-                  node={node}
-                  isActive={step.activeNodes.includes(node.id)}
-                  wasVisited={visitedNodes.has(node.id) && !step.activeNodes.includes(node.id)}
-                  isExpanded={expandedNode === node.id}
-                  onClick={() => setExpandedNode((p) => p === node.id ? null : node.id)}
-                  popKey={step.activeNodes.includes(node.id) ? index : null}
-                />
-              ))}
+      <DiagramCanvas
+        width={CW}
+        height={CH}
+        svg={<>
+          <DiagramEdges edges={EDGES} connections={step.connections} stepKey={index} directions={DIR_MAP} edgeProps={edgeProps} />
+        </>}
+        footer={<>
+          {/* Legend */}
+          <div className="flex items-center gap-5 mt-3 px-1 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-px bg-blue-500 rounded-full" style={{ boxShadow: '0 0 4px rgba(59,130,246,0.8)' }} />
+              <span className="text-[10px] text-slate-500">sync (HTTP/gRPC)</span>
             </div>
-
-            {/* Legend */}
-            <div className="flex items-center gap-5 mt-3 px-1 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-px bg-blue-500 rounded-full" style={{ boxShadow: '0 0 4px rgba(59,130,246,0.8)' }} />
-                <span className="text-[10px] text-slate-500">sync (HTTP/gRPC)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-px bg-amber-500 rounded-full" style={{ boxShadow: '0 0 4px rgba(245,158,11,0.8)' }} />
-                <span className="text-[10px] text-slate-500">async (events)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[7px] font-bold border border-white/20 rounded px-1 py-px text-slate-500">DB</span>
-                <span className="text-[10px] text-slate-500">owns its database</span>
-              </div>
-              <span className="text-[10px] text-slate-600 ml-auto hidden sm:inline">tap any service for details</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-px bg-amber-500 rounded-full" style={{ boxShadow: '0 0 4px rgba(245,158,11,0.8)' }} />
+              <span className="text-[10px] text-slate-500">async (events)</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[7px] font-bold border border-white/20 rounded px-1 py-px text-slate-500">DB</span>
+              <span className="text-[10px] text-slate-500">owns its database</span>
+            </div>
+            <span className="text-[10px] text-slate-600 ml-auto hidden sm:inline">tap any service for details</span>
           </div>
-        </div>
-      </div>
+        </>}
+      >
+        {/* Node blocks */}
+        {NODES.map((node) => (
+          <DiagramNode
+            key={node.id}
+            node={node}
+            {...nodeState(node.id)}
+          />
+        ))}
+      </DiagramCanvas>
 
       {/* Step message */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 space-y-1.5"
-        >
-          <p className="text-sm font-semibold text-white">{step.message}</p>
-          <p className="text-xs text-slate-400 leading-relaxed">{step.detail}</p>
-        </motion.div>
-      </AnimatePresence>
+      <StepNarration step={step} />
 
       <StepControls runner={runner} />
     </div>

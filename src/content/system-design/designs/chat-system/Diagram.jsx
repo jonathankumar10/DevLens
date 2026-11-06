@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo } from 'react'
 import { buildChatSystemSteps } from './steps'
 import { useStepRunner } from '../../../../hooks/useStepRunner'
 import StepControls from '../../../../components/ui/StepControls'
 import StepBanner from '../../../../components/ui/StepBanner'
+import { DiagramEdges } from '../../../../components/system-design/diagram/DiagramEdge'
+import DiagramNode from '../../../../components/system-design/diagram/DiagramNode'
+import { DiagramCanvas, DiagramHeader, StepNarration } from '../../../../components/system-design/diagram/DiagramParts'
+import { useDiagramNodes } from '../../../../components/system-design/diagram/useDiagramNodes'
+import { FLOW } from '../../../../components/system-design/diagram/colors'
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 // Left column:  userA
@@ -91,165 +95,30 @@ const NODES = [
 ]
 
 const EDGES = {
-  'userA-gateway':      { x1: 102,  y1: 130, x2: 137,  y2: 130, axis: 'h' },
-  'gateway-chatSvc':    { x1: 243,  y1: 120, x2: 284,  y2: 108, axis: 'd' },
-  'chatSvc-sequencer':  { x1: 340,  y1: 138, x2: 340,  y2: 176, axis: 'v' },
-  'chatSvc-cassandra':  { x1: 396,  y1: 115, x2: 454,  y2: 127, axis: 'd' },
-  'chatSvc-presence':   { x1: 340,  y1: 138, x2: 340,  y2: 277, axis: 'v' },
-  'chatSvc-mq':         { x1: 396,  y1: 128, x2: 454,  y2: 228, axis: 'd' },
-  'mq-chatSvc':         { x1: 454,  y1: 244, x2: 396,  y2: 130, axis: 'd' },
-  'chatSvc-userB':      { x1: 396,  y1: 100, x2: 626,  y2: 113, axis: 'd' },
-  'chatSvc-pushSvc':    { x1: 396,  y1: 120, x2: 620,  y2: 218, axis: 'd' },
-  'pushSvc-userB':      { x1: 672,  y1: 196, x2: 672,  y2: 151, axis: 'v' },
-  'userB-gateway':      { x1: 626,  y1: 120, x2: 243,  y2: 125, axis: 'd' },
-}
-
-const C = {
-  request:  { hex: '#8b5cf6', glow: 'rgba(139,92,246,0.85)' },
-  response: { hex: '#10b981', glow: 'rgba(16,185,129,0.85)' },
-  push:     { hex: '#f59e0b', glow: 'rgba(245,158,11,0.85)' },
-  sync:     { hex: '#06b6d4', glow: 'rgba(6,182,212,0.85)' },
+  'userA-gateway':      { x1: 102,  y1: 130, x2: 137,  y2: 130 },
+  'gateway-chatSvc':    { x1: 243,  y1: 120, x2: 284,  y2: 108 },
+  'chatSvc-sequencer':  { x1: 340,  y1: 138, x2: 340,  y2: 176 },
+  'chatSvc-cassandra':  { x1: 396,  y1: 115, x2: 454,  y2: 127 },
+  'chatSvc-presence':   { x1: 340,  y1: 138, x2: 340,  y2: 277 },
+  'chatSvc-mq':         { x1: 396,  y1: 128, x2: 454,  y2: 228 },
+  'mq-chatSvc':         { x1: 454,  y1: 244, x2: 396,  y2: 130 },
+  'chatSvc-userB':      { x1: 396,  y1: 100, x2: 626,  y2: 113 },
+  'chatSvc-pushSvc':    { x1: 396,  y1: 120, x2: 620,  y2: 218 },
+  'pushSvc-userB':      { x1: 672,  y1: 196, x2: 672,  y2: 151 },
+  'userB-gateway':      { x1: 626,  y1: 120, x2: 243,  y2: 125 },
 }
 
 const DIR_MAP = {
-  request:  { fwd: C.request,  bwd: null },
-  response: { fwd: C.response, bwd: null },
-  both:     { fwd: C.request,  bwd: C.response },
-  push:     { fwd: C.push,     bwd: null },
-  sync:     { fwd: C.sync,     bwd: null },
+  request:  { fwd: FLOW.violet,  bwd: null },
+  response: { fwd: FLOW.emerald, bwd: null },
+  both:     { fwd: FLOW.violet,  bwd: FLOW.emerald },
+  push:     { fwd: FLOW.amber,     bwd: null },
+  sync:     { fwd: FLOW.cyan,     bwd: null },
 }
 
 // ── Edge connection ───────────────────────────────────────────────────────────
 
-function EdgeConnection({ edgeId, connections, stepKey }) {
-  const edge = EDGES[edgeId]
-  const dir  = connections[edgeId]
-  const map  = DIR_MAP[dir]
-
-  const { x1, y1, x2, y2, axis } = edge
-  const fwdC    = map?.fwd ?? null
-  const bwdC    = map?.bwd ?? null
-  const isActive = !!map
-
-  const fwdAnim = axis === 'v' ? { cx: x1, cy: [y1, y2] }
-                : axis === 'h' ? { cx: [x1, x2], cy: y1 }
-                : { cx: [x1, x2], cy: [y1, y2] }
-
-  const bwdAnim = axis === 'v' ? { cx: x2, cy: [y2, y1] }
-                : axis === 'h' ? { cx: [x2, x1], cy: y2 }
-                : { cx: [x2, x1], cy: [y2, y1] }
-
-  return (
-    <g>
-      <line
-        x1={x1} y1={y1} x2={x2} y2={y2}
-        stroke={isActive ? (fwdC?.hex ?? '#1e293b') : '#182030'}
-        strokeWidth={isActive ? 2 : 1}
-        strokeDasharray={isActive ? 'none' : '5 4'}
-        style={{ filter: isActive && fwdC ? `drop-shadow(0 0 5px ${fwdC.glow})` : 'none', transition: 'all 0.3s' }}
-      />
-      {fwdC && [0, 1, 2].map((p) => (
-        <motion.circle
-          key={`${stepKey}-${edgeId}-f${p}`}
-          r={3.5} fill={fwdC.hex}
-          style={{ filter: `drop-shadow(0 0 5px ${fwdC.glow})` }}
-          animate={fwdAnim}
-          transition={{ duration: 0.5, delay: p * 0.16, ease: 'linear', repeat: Infinity, repeatDelay: 0.1 }}
-        />
-      ))}
-      {bwdC && [0, 1, 2].map((p) => (
-        <motion.circle
-          key={`${stepKey}-${edgeId}-b${p}`}
-          r={3.5} fill={bwdC.hex}
-          style={{ filter: `drop-shadow(0 0 5px ${bwdC.glow})` }}
-          animate={bwdAnim}
-          transition={{ duration: 0.5, delay: p * 0.16, ease: 'linear', repeat: Infinity, repeatDelay: 0.1 }}
-        />
-      ))}
-    </g>
-  )
-}
-
 // ── Node block ────────────────────────────────────────────────────────────────
-
-function NodeBlock({ node, isActive, wasVisited, isExpanded, onClick, popKey }) {
-  const { cx, cy, w, h } = node
-  return (
-    <div className="absolute" style={{ left: cx - w / 2, top: cy - h / 2, width: w, height: h }}>
-      <motion.button
-        onClick={onClick}
-        className="relative w-full h-full rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center gap-0.5 px-1 cursor-pointer focus:outline-none"
-        animate={{
-          borderColor:     isActive ? node.color : wasVisited ? `${node.color}38` : 'rgba(255,255,255,0.08)',
-          backgroundColor: isActive ? `${node.color}16` : wasVisited ? `${node.color}07` : 'rgba(10,18,36,1)',
-          boxShadow:       isActive ? `0 0 28px -5px ${node.glow}` : 'none',
-        }}
-        transition={{ duration: 0.28 }}
-      >
-        <motion.div className={`absolute top-0 left-0 right-0 h-0.5 ${node.strip}`}
-          animate={{ opacity: isActive ? 1 : wasVisited ? 0.35 : 0.12 }} />
-
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={`${popKey ?? 'i'}-${node.id}-${i}`}
-            className="absolute inset-0 rounded-xl border-2 pointer-events-none"
-            style={{ borderColor: node.color }}
-            initial={{ scale: 1, opacity: popKey != null ? 0.65 : 0 }}
-            animate={{ scale: 2.0 + i * 0.35, opacity: 0 }}
-            transition={{ duration: 0.7, delay: i * 0.12, ease: 'easeOut' }}
-          />
-        ))}
-
-        <motion.span
-          key={`ic-${popKey ?? 0}`}
-          animate={popKey != null ? { scale: [1, 1.4, 0.88, 1.06, 1] } : { scale: 1 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-          className="text-xl leading-none select-none"
-        >
-          {node.icon}
-        </motion.span>
-
-        <motion.p
-          animate={{ color: isActive ? node.lc : wasVisited ? '#94a3b8' : '#475569' }}
-          className="text-[10px] font-bold text-center leading-tight"
-        >
-          {node.label}
-        </motion.p>
-
-        <motion.p
-          animate={{ color: isActive ? node.color : '#1f2937' }}
-          className="text-[9px] font-mono"
-        >
-          {node.sub1}
-        </motion.p>
-        <p className="text-[8px] text-slate-700">{node.sub2}</p>
-      </motion.button>
-
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-            className="absolute z-30 w-52 rounded-xl border bg-slate-900/96 backdrop-blur shadow-2xl p-3 space-y-1.5"
-            style={{
-              borderColor: `${node.color}40`,
-              ...(node.dir === 'top'    ? { top: '105%',    left: '50%', transform: 'translateX(-50%)' } : {}),
-              ...(node.dir === 'right'  ? { left: '105%',   top: '50%',  transform: 'translateY(-50%)' } : {}),
-              ...(node.dir === 'bottom' ? { bottom: '105%', left: '50%', transform: 'translateX(-50%)' } : {}),
-              ...(node.dir === 'left'   ? { right: '105%',  top: '50%',  transform: 'translateY(-50%)' } : {}),
-            }}
-          >
-            <p className="text-[11px] font-bold" style={{ color: node.lc }}>{node.label}</p>
-            <p className="text-[10px] text-slate-400 leading-relaxed">{node.desc}</p>
-            <p className="text-[10px] italic" style={{ color: node.color }}>{node.note}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -258,103 +127,57 @@ export default function ChatSystemDiagram() {
   const runner = useStepRunner(steps)
   const { step, index } = runner
 
-  const [expandedNode, setExpandedNode] = useState(null)
-
-  const visitedNodes = useMemo(() => {
-    const s = new Set()
-    for (let i = 0; i <= index; i++) steps[i].activeNodes.forEach((id) => s.add(id))
-    return s
-  }, [steps, index])
+  const { nodeState } = useDiagramNodes(steps, index)
 
 
   return (
     <div className="space-y-4">
 
-      <div>
-        <h2 className="text-lg font-semibold text-white">Chat System Architecture</h2>
-        <p className="text-sm text-slate-400">
-          From WebSocket connection to message delivery — trace every hop including offline fallback and group fan-out.
-        </p>
-      </div>
+      <DiagramHeader title="Chat System Architecture">
+        From WebSocket connection to message delivery — trace every hop including offline fallback and group fan-out.
+      </DiagramHeader>
 
-      <div
-        className="rounded-2xl border border-white/10 p-3 sm:p-5"
-        style={{
-          background: '#060d1a',
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="overflow-x-auto pb-2">
-          <div style={{ minWidth: CW }}>
-            <div className="relative mx-auto" style={{ width: CW, height: CH }}>
-              <svg
-                className="absolute inset-0 pointer-events-none overflow-visible"
-                viewBox={`0 0 ${CW} ${CH}`}
-                width={CW} height={CH}
-              >
-                {Object.keys(EDGES).map((edgeId) => (
-                  <EdgeConnection
-                    key={edgeId}
-                    edgeId={edgeId}
-                    connections={step.connections}
-                    stepKey={index}
-                  />
-                ))}
-                {/* Section labels */}
-                <text x={14} y={20} style={{ fill: '#4c1d95', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>CLIENTS</text>
-                <text x={148} y={20} style={{ fill: '#3730a3', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>GATEWAY</text>
-                <text x={292} y={20} style={{ fill: '#6d28d9', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>CHAT SERVICES</text>
-                <text x={456} y={20} style={{ fill: '#0c4a6e', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>STORAGE / QUEUE</text>
-                <text x={634} y={20} style={{ fill: '#064e3b', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>DELIVERY</text>
-              </svg>
+      <DiagramCanvas
+        width={CW}
+        height={CH}
+        svg={<>
+          <DiagramEdges edges={EDGES} connections={step.connections} stepKey={index} directions={DIR_MAP} />
+          {/* Section labels */}
+          <text x={14} y={20} style={{ fill: '#4c1d95', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>CLIENTS</text>
+          <text x={148} y={20} style={{ fill: '#3730a3', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>GATEWAY</text>
+          <text x={292} y={20} style={{ fill: '#6d28d9', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>CHAT SERVICES</text>
+          <text x={456} y={20} style={{ fill: '#0c4a6e', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>STORAGE / QUEUE</text>
+          <text x={634} y={20} style={{ fill: '#064e3b', fontSize: 8, fontFamily: 'monospace', fontWeight: 700, opacity: 0.7 }}>DELIVERY</text>
+        </>}
+        footer={<>
+          <StepBanner banner={step.banner} />
 
-              {NODES.map((node) => (
-                <NodeBlock
-                  key={node.id}
-                  node={node}
-                  isActive={step.activeNodes.includes(node.id)}
-                  wasVisited={visitedNodes.has(node.id) && !step.activeNodes.includes(node.id)}
-                  isExpanded={expandedNode === node.id}
-                  onClick={() => setExpandedNode((p) => p === node.id ? null : node.id)}
-                  popKey={step.activeNodes.includes(node.id) ? index : null}
-                />
-              ))}
-            </div>
-
-            <StepBanner banner={step.banner} />
+          <div className="flex items-center gap-5 mt-3 px-1 flex-wrap">
+            {[
+              { color: FLOW.violet.hex,  glow: FLOW.violet.glow,  label: 'request / send' },
+              { color: FLOW.emerald.hex, glow: FLOW.emerald.glow, label: 'delivery / response' },
+              { color: FLOW.amber.hex,     glow: FLOW.amber.glow,     label: 'push notification' },
+              { color: FLOW.cyan.hex,     glow: FLOW.cyan.glow,     label: 'sync / queue' },
+            ].map(({ color, glow, label }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className="w-5 h-px rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${glow}` }} />
+                <span className="text-[10px] text-slate-500">{label}</span>
+              </div>
+            ))}
+            <span className="text-[10px] text-slate-600 ml-auto hidden sm:inline">tap any node for details</span>
           </div>
-        </div>
+        </>}
+      >
+        {NODES.map((node) => (
+          <DiagramNode
+            key={node.id}
+            node={node}
+            {...nodeState(node.id)}
+          />
+        ))}
+      </DiagramCanvas>
 
-        <div className="flex items-center gap-5 mt-3 px-1 flex-wrap">
-          {[
-            { color: C.request.hex,  glow: C.request.glow,  label: 'request / send' },
-            { color: C.response.hex, glow: C.response.glow, label: 'delivery / response' },
-            { color: C.push.hex,     glow: C.push.glow,     label: 'push notification' },
-            { color: C.sync.hex,     glow: C.sync.glow,     label: 'sync / queue' },
-          ].map(({ color, glow, label }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <div className="w-5 h-px rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${glow}` }} />
-              <span className="text-[10px] text-slate-500">{label}</span>
-            </div>
-          ))}
-          <span className="text-[10px] text-slate-600 ml-auto hidden sm:inline">tap any node for details</span>
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 space-y-1.5"
-        >
-          <p className="text-sm font-semibold text-white">{step.message}</p>
-          <p className="text-xs text-slate-400 leading-relaxed">{step.detail}</p>
-        </motion.div>
-      </AnimatePresence>
+      <StepNarration step={step} />
 
       <StepControls runner={runner} />
     </div>

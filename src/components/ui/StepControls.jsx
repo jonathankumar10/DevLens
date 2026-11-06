@@ -20,6 +20,7 @@ export default function StepControls({ runner }) {
           <button
             onClick={reset}
             title="Reset"
+            aria-label="Reset"
             className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
           >
             <ResetIcon />
@@ -27,6 +28,8 @@ export default function StepControls({ runner }) {
           <button
             onClick={prev}
             disabled={index === 0}
+            title="Previous step"
+            aria-label="Previous step"
             className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30"
           >
             <PrevIcon />
@@ -40,6 +43,8 @@ export default function StepControls({ runner }) {
           <button
             onClick={next}
             disabled={index === total - 1}
+            title="Next step"
+            aria-label="Next step"
             className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30"
           >
             <NextIcon />

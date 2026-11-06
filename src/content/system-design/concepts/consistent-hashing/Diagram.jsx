@@ -1,8 +1,10 @@
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { buildConsistentHashingSteps } from './steps'
 import { useStepRunner } from '../../../../hooks/useStepRunner'
 import StepControls from '../../../../components/ui/StepControls'
+import { DiagramCanvas, DiagramHeader, StepNarration } from '../../../../components/system-design/diagram/DiagramParts'
+import { useDiagramNodes } from '../../../../components/system-design/diagram/useDiagramNodes'
 
 const CW = 620
 const CH = 320
@@ -74,7 +76,30 @@ const KEYS = [
 
 const KEY_OWNER_MAP = { a: 'server-a', b: 'server-b', c: 'server-c', d: 'server-d', e: 'server-e' }
 
-function NodeBlock({ node, isActive, wasVisited, isExpanded, onClick, popKey, show }) {
+function KeyDot({ keyNode, ownerColor, isActive }) {
+  const pos = ringPos(keyNode.angle, keyNode.r)
+  return (
+    <g>
+      <motion.circle
+        cx={pos.x} cy={pos.y} r={6}
+        fill={isActive ? ownerColor : keyNode.color}
+        style={{ filter: isActive ? `drop-shadow(0 0 6px ${ownerColor})` : 'none' }}
+        animate={{ r: isActive ? 7 : 5 }}
+        transition={{ duration: 0.25 }}
+      />
+      <text
+        x={pos.x} y={pos.y - 10}
+        textAnchor="middle"
+        style={{ fill: isActive ? ownerColor : '#475569', fontSize: 8, fontFamily: 'ui-monospace, monospace', fontWeight: 700 }}
+      >
+        {keyNode.label}
+      </text>
+    </g>
+  )
+}
+
+// A server on the hash ring: a compact node placed by its angle, shown once it has joined.
+function RingServer({ node, isActive, wasVisited, isExpanded, onToggle, popKey, show }) {
   const pos = ringPos(node.angle, RING_R + 42)
   if (!show) return null
 
@@ -89,7 +114,7 @@ function NodeBlock({ node, isActive, wasVisited, isExpanded, onClick, popKey, sh
       }}
     >
       <motion.button
-        onClick={onClick}
+        onClick={onToggle}
         className="relative w-full h-full rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center gap-0.5 px-1 cursor-pointer focus:outline-none"
         animate={{
           borderColor:     isActive ? node.color : wasVisited ? `${node.color}38` : 'rgba(255,255,255,0.08)',
@@ -154,28 +179,6 @@ function NodeBlock({ node, isActive, wasVisited, isExpanded, onClick, popKey, sh
   )
 }
 
-function KeyDot({ keyNode, ownerColor, isActive }) {
-  const pos = ringPos(keyNode.angle, keyNode.r)
-  return (
-    <g>
-      <motion.circle
-        cx={pos.x} cy={pos.y} r={6}
-        fill={isActive ? ownerColor : keyNode.color}
-        style={{ filter: isActive ? `drop-shadow(0 0 6px ${ownerColor})` : 'none' }}
-        animate={{ r: isActive ? 7 : 5 }}
-        transition={{ duration: 0.25 }}
-      />
-      <text
-        x={pos.x} y={pos.y - 10}
-        textAnchor="middle"
-        style={{ fill: isActive ? ownerColor : '#475569', fontSize: 8, fontFamily: 'ui-monospace, monospace', fontWeight: 700 }}
-      >
-        {keyNode.label}
-      </text>
-    </g>
-  )
-}
-
 export default function ConsistentHashingDiagram({ onStepChange }) {
   const steps  = useMemo(() => buildConsistentHashingSteps(), [])
   const runner = useStepRunner(steps)
@@ -183,13 +186,7 @@ export default function ConsistentHashingDiagram({ onStepChange }) {
 
   useEffect(() => { onStepChange?.(step) }, [step, onStepChange])
 
-  const [expandedNode, setExpandedNode] = useState(null)
-
-  const visitedNodes = useMemo(() => {
-    const s = new Set()
-    for (let i = 0; i <= index; i++) steps[i].activeNodes.forEach((id) => s.add(id))
-    return s
-  }, [steps, index])
+  const { nodeState } = useDiagramNodes(steps, index)
 
   const activeServerIds = new Set(step.activeNodes.filter((n) => n.startsWith('server')))
   const showVnodes      = !!step.vnodes
@@ -204,163 +201,125 @@ export default function ConsistentHashingDiagram({ onStepChange }) {
   return (
     <div className="space-y-4">
 
-      <div>
-        <h2 className="text-lg font-semibold text-white">Consistent Hashing — the Ring</h2>
-        <p className="text-sm text-slate-400">
-          Step through how servers and keys share a virtual ring, and why only ~1/N keys move when topology changes.
-        </p>
-      </div>
+      <DiagramHeader title="Consistent Hashing — the Ring">
+        Step through how servers and keys share a virtual ring, and why only ~1/N keys move when topology changes.
+      </DiagramHeader>
 
-      <div
-        className="rounded-2xl border border-white/10 p-3 sm:p-5"
-        style={{
-          background: '#060d1a',
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="overflow-x-auto pb-2">
-          <div className="relative mx-auto" style={{ width: CW, height: CH }}>
+      <DiagramCanvas
+        width={CW}
+        height={CH}
+        svg={<>
+          <motion.circle
+            cx={RING_CX} cy={RING_CY} r={RING_R}
+            fill="none"
+            animate={{
+              stroke:       step.highlightedRing ? '#8b5cf6' : '#1e293b',
+              strokeWidth:  step.highlightedRing ? 2 : 1.5,
+              filter:       step.highlightedRing ? 'drop-shadow(0 0 6px rgba(139,92,246,0.5))' : 'none',
+            }}
+            strokeDasharray="6 4"
+            transition={{ duration: 0.4 }}
+          />
 
-            <svg
-              className="absolute inset-0 pointer-events-none overflow-visible"
-              viewBox={`0 0 ${CW} ${CH}`}
-              width={CW} height={CH}
-            >
-              <motion.circle
-                cx={RING_CX} cy={RING_CY} r={RING_R}
-                fill="none"
-                animate={{
-                  stroke:       step.highlightedRing ? '#8b5cf6' : '#1e293b',
-                  strokeWidth:  step.highlightedRing ? 2 : 1.5,
-                  filter:       step.highlightedRing ? 'drop-shadow(0 0 6px rgba(139,92,246,0.5))' : 'none',
-                }}
-                strokeDasharray="6 4"
-                transition={{ duration: 0.4 }}
-              />
-
-              {showVnodes && SERVERS.map((sv) =>
-                [-30, 30, 90].map((offset) => {
-                  const vpos = ringPos(sv.angle + offset, RING_R)
-                  return (
-                    <motion.circle
-                      key={`vn-${sv.id}-${offset}`}
-                      cx={vpos.x} cy={vpos.y} r={3}
-                      fill={sv.color}
-                      opacity={0.45}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                    />
-                  )
-                })
-              )}
-
-              {KEYS.map((k) => {
-                const isKActive = step.activeKeys?.includes(k.id)
-                const ownerColor = getOwnerColor(k.id)
-                return <KeyDot key={k.id} keyNode={k} ownerColor={ownerColor} isActive={isKActive} />
-              })}
-
-              {SERVERS.map((sv) => {
-                if (sv.id === 'server-e' && !step.activeNodes.includes('server-e')) return null
-                const pos = ringPos(sv.angle, RING_R)
-                return (
-                  <motion.circle
-                    key={`ring-dot-${sv.id}`}
-                    cx={pos.x} cy={pos.y} r={5}
-                    fill={activeServerIds.has(sv.id) ? sv.color : '#1e293b'}
-                    stroke={sv.color}
-                    strokeWidth={1.5}
-                    style={{ filter: activeServerIds.has(sv.id) ? `drop-shadow(0 0 6px ${sv.glow})` : 'none' }}
-                    transition={{ duration: 0.3 }}
-                  />
-                )
-              })}
-
-              {SERVERS.map((sv) => {
-                if (sv.id === 'server-e' && !step.activeNodes.includes('server-e')) return null
-                const visibleServers = SERVERS.filter((s) => s.id !== 'server-e' || step.activeNodes.includes('server-e'))
-                const visIdx = visibleServers.findIndex((s) => s.id === sv.id)
-                const next = visibleServers[(visIdx + 1) % visibleServers.length]
-                const pos1 = ringPos(sv.angle, RING_R)
-                const pos2 = ringPos(next.angle, RING_R)
-                const bothActive = activeServerIds.has(sv.id) && activeServerIds.has(next.id)
-                return (
-                  <line
-                    key={`arc-label-${sv.id}`}
-                    x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
-                    stroke={bothActive ? sv.color : '#0f172a'}
-                    strokeWidth={bothActive ? 1.5 : 0}
-                    strokeDasharray="3 3"
-                    style={{ transition: 'all 0.3s' }}
-                  />
-                )
-              })}
-            </svg>
-
-            {SERVERS.map((sv) => (
-              <NodeBlock
-                key={sv.id}
-                node={sv}
-                isActive={step.activeNodes.includes(sv.id)}
-                wasVisited={visitedNodes.has(sv.id) && !step.activeNodes.includes(sv.id)}
-                isExpanded={expandedNode === sv.id}
-                onClick={() => setExpandedNode((p) => p === sv.id ? null : sv.id)}
-                popKey={step.activeNodes.includes(sv.id) ? index : null}
-                show={sv.id !== 'server-e' || step.activeNodes.includes('server-e')}
-              />
-            ))}
-
-          </div>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {showVnodes && (
-            <motion.div
-              key="vnodes-banner"
-              initial={{ opacity: 0, y: 6, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 340, damping: 22 }}
-              className="mt-3 flex items-center gap-3 rounded-xl border border-violet-500/40 bg-violet-500/[0.07] px-4 py-2.5"
-            >
-              <span className="text-violet-400 select-none">⬡</span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-400">Virtual Nodes Active</p>
-                <p className="text-[11px] font-mono text-violet-300">Each server occupies ~150 positions on the ring — load distributes uniformly</p>
-              </div>
-            </motion.div>
+          {showVnodes && SERVERS.map((sv) =>
+            [-30, 30, 90].map((offset) => {
+              const vpos = ringPos(sv.angle + offset, RING_R)
+              return (
+                <motion.circle
+                  key={`vn-${sv.id}-${offset}`}
+                  cx={vpos.x} cy={vpos.y} r={3}
+                  fill={sv.color}
+                  opacity={0.45}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                />
+              )
+            })
           )}
-        </AnimatePresence>
 
-        <div className="flex items-center gap-5 mt-3 px-1 flex-wrap">
-          {[
-            { color: '#8b5cf6', glow: 'rgba(139,92,246,0.85)', label: 'server on ring' },
-            { color: '#a78bfa', glow: 'rgba(167,139,250,0.85)', label: 'key → nearest clockwise server' },
-          ].map(({ color, glow, label }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <div className="w-5 h-px rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${glow}` }} />
-              <span className="text-[10px] text-slate-500">{label}</span>
-            </div>
-          ))}
-          <span className="text-[10px] text-slate-600 ml-auto hidden sm:inline">tap any server for details</span>
-        </div>
-      </div>
+          {KEYS.map((k) => {
+            const isKActive = step.activeKeys?.includes(k.id)
+            const ownerColor = getOwnerColor(k.id)
+            return <KeyDot key={k.id} keyNode={k} ownerColor={ownerColor} isActive={isKActive} />
+          })}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step.message}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 space-y-1.5"
-        >
-          <p className="text-sm font-semibold text-white">{step.message}</p>
-          <p className="text-xs text-slate-400 leading-relaxed">{step.detail}</p>
-        </motion.div>
-      </AnimatePresence>
+          {SERVERS.map((sv) => {
+            if (sv.id === 'server-e' && !step.activeNodes.includes('server-e')) return null
+            const pos = ringPos(sv.angle, RING_R)
+            return (
+              <motion.circle
+                key={`ring-dot-${sv.id}`}
+                cx={pos.x} cy={pos.y} r={5}
+                fill={activeServerIds.has(sv.id) ? sv.color : '#1e293b'}
+                stroke={sv.color}
+                strokeWidth={1.5}
+                style={{ filter: activeServerIds.has(sv.id) ? `drop-shadow(0 0 6px ${sv.glow})` : 'none' }}
+                transition={{ duration: 0.3 }}
+              />
+            )
+          })}
+
+          {SERVERS.map((sv) => {
+            if (sv.id === 'server-e' && !step.activeNodes.includes('server-e')) return null
+            const visibleServers = SERVERS.filter((s) => s.id !== 'server-e' || step.activeNodes.includes('server-e'))
+            const visIdx = visibleServers.findIndex((s) => s.id === sv.id)
+            const next = visibleServers[(visIdx + 1) % visibleServers.length]
+            const pos1 = ringPos(sv.angle, RING_R)
+            const pos2 = ringPos(next.angle, RING_R)
+            const bothActive = activeServerIds.has(sv.id) && activeServerIds.has(next.id)
+            return (
+              <line
+                key={`arc-label-${sv.id}`}
+                x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
+                stroke={bothActive ? sv.color : '#0f172a'}
+                strokeWidth={bothActive ? 1.5 : 0}
+                strokeDasharray="3 3"
+                style={{ transition: 'all 0.3s' }}
+              />
+            )
+          })}
+        </>}
+        footer={<>
+          <AnimatePresence mode="wait">
+            {showVnodes && (
+              <motion.div
+                key="vnodes-banner"
+                initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 340, damping: 22 }}
+                className="mt-3 flex items-center gap-3 rounded-xl border border-violet-500/40 bg-violet-500/[0.07] px-4 py-2.5"
+              >
+                <span className="text-violet-400 select-none">⬡</span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-violet-400">Virtual Nodes Active</p>
+                  <p className="text-[11px] font-mono text-violet-300">Each server occupies ~150 positions on the ring — load distributes uniformly</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="flex items-center gap-5 mt-3 px-1 flex-wrap">
+            {[
+              { color: '#8b5cf6', glow: 'rgba(139,92,246,0.85)', label: 'server on ring' },
+              { color: '#a78bfa', glow: 'rgba(167,139,250,0.85)', label: 'key → nearest clockwise server' },
+            ].map(({ color, glow, label }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className="w-5 h-px rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 4px ${glow}` }} />
+                <span className="text-[10px] text-slate-500">{label}</span>
+              </div>
+            ))}
+            <span className="text-[10px] text-slate-600 ml-auto hidden sm:inline">tap any server for details</span>
+          </div>
+        </>}
+      >
+        {SERVERS.map((sv) => (
+          <RingServer key={sv.id} node={sv} {...nodeState(sv.id)} show={sv.id !== 'server-e' || step.activeNodes.includes('server-e')} />
+        ))}
+      </DiagramCanvas>
+
+      <StepNarration step={step} />
 
       <StepControls runner={runner} />
     </div>
